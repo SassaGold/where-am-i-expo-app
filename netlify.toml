@@ -1,0 +1,9 @@
+# Netlify configuration for Expo web
+[build]
+  publish = "dist"
+  command = "npx expo export --platform web"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
