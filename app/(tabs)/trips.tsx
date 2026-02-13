@@ -20,6 +20,7 @@ export default function TripsScreen() {
   const [currentRoute, setCurrentRoute] = useState<Route | null>(null);
   const [routeName, setRouteName] = useState("");
   const [showCreateRoute, setShowCreateRoute] = useState(false);
+  const [selectedWaypointIds, setSelectedWaypointIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadData();
@@ -58,15 +59,16 @@ export default function TripsScreen() {
   };
 
   const createRoute = async () => {
-    if (!routeName.trim() || !currentRoute?.waypoints.length) {
-      Alert.alert("Error", "Please enter a route name and add waypoints");
+    if (!routeName.trim() || selectedWaypointIds.size === 0) {
+      Alert.alert("Error", "Please enter a route name and select waypoints");
       return;
     }
 
     try {
+      const selectedWaypoints = waypoints.filter(w => selectedWaypointIds.has(w.id));
       const newRoute = await saveRoute({
         name: routeName.trim(),
-        waypoints: [...currentRoute.waypoints],
+        waypoints: selectedWaypoints,
         createdAt: new Date(),
       });
 
@@ -74,6 +76,7 @@ export default function TripsScreen() {
       setCurrentRoute(null);
       setRouteName("");
       setShowCreateRoute(false);
+      setSelectedWaypointIds(new Set());
     } catch (error) {
       Alert.alert("Error", "Failed to save route");
     }
@@ -199,12 +202,51 @@ export default function TripsScreen() {
             onChangeText={setRouteName}
           />
           <Text style={styles.bodyText}>
-            Add waypoints from the saved waypoints list below, then tap Create Route.
+            Select waypoints from the list below to include in your route:
+          </Text>
+          <ScrollView style={styles.waypointSelector} nestedScrollEnabled={true}>
+            {waypoints.map((waypoint) => (
+              <Pressable
+                key={waypoint.id}
+                style={[
+                  styles.waypointSelectorItem,
+                  selectedWaypointIds.has(waypoint.id) && styles.waypointSelected
+                ]}
+                onPress={() => {
+                  const newSelected = new Set(selectedWaypointIds);
+                  if (newSelected.has(waypoint.id)) {
+                    newSelected.delete(waypoint.id);
+                  } else {
+                    newSelected.add(waypoint.id);
+                  }
+                  setSelectedWaypointIds(newSelected);
+                }}
+              >
+                <View style={styles.checkbox}>
+                  {selectedWaypointIds.has(waypoint.id) && (
+                    <Ionicons name="checkmark" size={16} color="#38bdf8" />
+                  )}
+                </View>
+                <View style={styles.waypointSelectorInfo}>
+                  <Text style={styles.waypointName}>{waypoint.name}</Text>
+                  <Text style={styles.waypointMeta}>
+                    {waypoint.latitude.toFixed(5)}, {waypoint.longitude.toFixed(5)}
+                    {waypoint.category && ` • ${waypoint.category}`}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Text style={styles.bodyText}>
+            Selected: {selectedWaypointIds.size} waypoint{selectedWaypointIds.size !== 1 ? 's' : ''}
           </Text>
           <View style={styles.buttonRow}>
             <Pressable
               style={[styles.secondaryButton, { flex: 1 }]}
-              onPress={() => setShowCreateRoute(false)}
+              onPress={() => {
+                setShowCreateRoute(false);
+                setSelectedWaypointIds(new Set());
+              }}
             >
               <Text style={styles.secondaryButtonText}>Cancel</Text>
             </Pressable>
@@ -436,13 +478,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-  waypointActions: {
+  waypointSelector: {
+    maxHeight: 200,
+    marginBottom: 12,
+  },
+  waypointSelectorItem: {
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    backgroundColor: "#1e293b",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#334155",
   },
-  iconButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: "#334155",
+  waypointSelected: {
+    borderColor: "#38bdf8",
+    backgroundColor: "#1e293b",
   },
-});
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: "#64748b",
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  waypointSelectorInfo: {
+    flex: 1,
+  },
