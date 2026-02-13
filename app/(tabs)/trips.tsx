@@ -509,3 +509,13 @@ const styles = StyleSheet.create({
   waypointSelectorInfo: {
     flex: 1,
   },
+  waypointActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  iconButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: "#334155",
+  },
+});
