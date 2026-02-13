@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
-import { Waypoint, Route, saveWaypoint, getWaypoints, deleteWaypoint, saveRoute, getRoutes, deleteRoute } from "../../utils/tripUtils";
+import { Waypoint, Route, saveWaypoint, getWaypoints, deleteWaypoint, saveRoute, getRoutes, deleteRoute as deleteRouteFromUtils } from "../../utils/tripUtils";
 
 export default function TripsScreen() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -93,7 +93,7 @@ export default function TripsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteRoute(routeId);
+              await deleteRouteFromUtils(routeId);
               setRoutes(prev => prev.filter(r => r.id !== routeId));
             } catch (error) {
               Alert.alert("Error", "Failed to delete route");
