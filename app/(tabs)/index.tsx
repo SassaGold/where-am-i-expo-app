@@ -12,13 +12,17 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Place } from "../../types/places";
+import { searchPlacesByType } from "../../utils/placeDetails";
 
 let NativeMapView: any = null;
 let NativeMarker: any = null;
 
 if (Platform.OS !== "web") {
   try {
-    const maps = require("react-native-maps");
+    const maps = eval('require("react-native-maps")');
     NativeMapView = maps.default ?? maps.MapView ?? maps;
     NativeMarker = null;
   } catch (e) {
@@ -40,6 +44,31 @@ type WeatherInfo = {
   precipitation?: number;
   precipitationProbability?: number;
   weatherCode?: number;
+  // Forecast data
+  hourlyForecast?: {
+    time: string[];
+    temperature: number[];
+    precipitation: number[];
+    precipitationProbability: number[];
+    weatherCode: number[];
+    windSpeed: number[];
+  };
+  dailyForecast?: {
+    time: string[];
+    temperatureMax: number[];
+    temperatureMin: number[];
+    precipitationSum: number[];
+    precipitationProbabilityMax: number[];
+    weatherCode: number[];
+    windSpeedMax: number[];
+  };
+};
+
+type RidingConditions = {
+  score: number; // 0-100
+  suitability: 'excellent' | 'good' | 'fair' | 'poor' | 'dangerous';
+  alerts: string[];
+  recommendations: string[];
 };
 
 type Place = {
@@ -155,11 +184,136 @@ const buildAlerts = (weather?: WeatherInfo) => {
   return alerts;
 };
 
+const calculateRidingConditions = (weather: WeatherInfo): RidingConditions => {
+  let score = 100; // Start with perfect score
+  const alerts: string[] = [];
+  const recommendations: string[] = [];
+
+  // Temperature factors
+  const temp = weather.temperatureC ?? 20;
+  if (temp < 5) {
+    score -= 40;
+    alerts.push("Very cold - risk of frostbite");
+    recommendations.push("Wear thermal gear, consider heated grips");
+  } else if (temp < 10) {
+    score -= 20;
+    alerts.push("Cold weather");
+    recommendations.push("Wear warm layers");
+  } else if (temp > 30) {
+    score -= 30;
+    alerts.push("Very hot - risk of heat exhaustion");
+    recommendations.push("Stay hydrated, wear light clothing");
+  } else if (temp > 25) {
+    score -= 15;
+    alerts.push("Hot weather");
+    recommendations.push("Drink water regularly");
+  }
+
+  // Wind factors
+  const windSpeed = weather.windSpeed ?? 0;
+  if (windSpeed > 15) {
+    score -= 50;
+    alerts.push("Very windy - dangerous riding conditions");
+    recommendations.push("Avoid riding if possible, use extreme caution");
+  } else if (windSpeed > 10) {
+    score -= 30;
+    alerts.push("Strong winds");
+    recommendations.push("Lean into wind, reduce speed");
+  } else if (windSpeed > 5) {
+    score -= 10;
+    alerts.push("Moderate winds");
+    recommendations.push("Be cautious on exposed roads");
+  }
+
+  // Precipitation factors
+  const precipProb = weather.precipitationProbability ?? 0;
+  const currentPrecip = weather.precipitation ?? 0;
+
+  if (currentPrecip > 5 || precipProb > 80) {
+    score -= 60;
+    alerts.push("Heavy rain - extremely dangerous");
+    recommendations.push("Do not ride, seek shelter");
+  } else if (currentPrecip > 1 || precipProb > 60) {
+    score -= 40;
+    alerts.push("Rain expected");
+    recommendations.push("Wear waterproof gear, reduce speed, increase following distance");
+  } else if (precipProb > 30) {
+    score -= 20;
+    alerts.push("Possible rain");
+    recommendations.push("Check weather frequently, be prepared for rain");
+  }
+
+  // Weather code factors (severe weather)
+  const weatherCode = weather.weatherCode ?? 0;
+  if ([95, 96, 99].includes(weatherCode)) {
+    score -= 70;
+    alerts.push("Thunderstorm - extremely dangerous");
+    recommendations.push("Do not ride, seek shelter immediately");
+  } else if ([71, 73, 75, 77].includes(weatherCode)) {
+    score -= 50;
+    alerts.push("Snow/ice conditions");
+    recommendations.push("Do not ride, roads may be icy");
+  } else if ([45, 48].includes(weatherCode)) {
+    score -= 15;
+    alerts.push("Foggy conditions");
+    recommendations.push("Use headlights, reduce speed, increase following distance");
+  }
+
+  // Check forecast for next few hours
+  if (weather.hourlyForecast) {
+    const nextHours = weather.hourlyForecast.precipitationProbability.slice(0, 6); // Next 6 hours
+    const maxPrecipProb = Math.max(...nextHours);
+    if (maxPrecipProb > 70) {
+      score -= 25;
+      alerts.push("Rain likely in next few hours");
+      recommendations.push("Plan route to avoid bad weather");
+    }
+  }
+
+  // Determine suitability
+  let suitability: RidingConditions['suitability'];
+  if (score >= 80) suitability = 'excellent';
+  else if (score >= 60) suitability = 'good';
+  else if (score >= 40) suitability = 'fair';
+  else if (score >= 20) suitability = 'poor';
+  else suitability = 'dangerous';
+
+  // Ensure score doesn't go below 0
+  score = Math.max(0, score);
+
+  return {
+    score,
+    suitability,
+    alerts,
+    recommendations,
+  };
+};
+
+const getScoreColor = (score: number) => {
+  if (score >= 80) return { color: '#10b981' }; // green
+  if (score >= 60) return { color: '#84cc16' }; // lime
+  if (score >= 40) return { color: '#f59e0b' }; // amber
+  if (score >= 20) return { color: '#f97316' }; // orange
+  return { color: '#ef4444' }; // red
+};
+
+const getSuitabilityStyle = (suitability: RidingConditions['suitability']) => {
+  switch (suitability) {
+    case 'excellent': return { backgroundColor: '#10b981', color: '#fff' };
+    case 'good': return { backgroundColor: '#84cc16', color: '#fff' };
+    case 'fair': return { backgroundColor: '#f59e0b', color: '#fff' };
+    case 'poor': return { backgroundColor: '#f97316', color: '#fff' };
+    case 'dangerous': return { backgroundColor: '#ef4444', color: '#fff' };
+    default: return { backgroundColor: '#6b7280', color: '#fff' };
+  }
+};
+
 export default function Index() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState<GeoAddress | null>(null);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
+  const [ridingConditions, setRidingConditions] = useState<RidingConditions | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -203,19 +357,43 @@ export default function Index() {
         .catch(() => null);
 
       const weatherPromise = fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,precipitation,weather_code&hourly=precipitation_probability&forecast_days=1`
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,precipitation,weather_code&hourly=temperature_2m,precipitation,precipitation_probability,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max&forecast_days=3&timezone=auto`
       )
         .then((response) => response.json())
         .then((data) => {
-          const precipitationProbability =
+          const currentPrecipitationProbability =
             data.hourly?.precipitation_probability?.[0] ?? undefined;
-          return {
+
+          const weatherInfo: WeatherInfo = {
             temperatureC: data.current?.temperature_2m ?? undefined,
             windSpeed: data.current?.wind_speed_10m ?? undefined,
             precipitation: data.current?.precipitation ?? undefined,
             weatherCode: data.current?.weather_code ?? undefined,
-            precipitationProbability,
-          } as WeatherInfo;
+            precipitationProbability: currentPrecipitationProbability,
+            hourlyForecast: data.hourly ? {
+              time: data.hourly.time || [],
+              temperature: data.hourly.temperature_2m || [],
+              precipitation: data.hourly.precipitation || [],
+              precipitationProbability: data.hourly.precipitation_probability || [],
+              weatherCode: data.hourly.weather_code || [],
+              windSpeed: data.hourly.wind_speed_10m || [],
+            } : undefined,
+            dailyForecast: data.daily ? {
+              time: data.daily.time || [],
+              temperatureMax: data.daily.temperature_2m_max || [],
+              temperatureMin: data.daily.temperature_2m_min || [],
+              precipitationSum: data.daily.precipitation_sum || [],
+              precipitationProbabilityMax: data.daily.precipitation_probability_max || [],
+              weatherCode: data.daily.weather_code || [],
+              windSpeedMax: data.daily.wind_speed_10m_max || [],
+            } : undefined,
+          };
+
+          // Calculate riding conditions
+          const ridingConditions = calculateRidingConditions(weatherInfo);
+          setRidingConditions(ridingConditions);
+
+          return weatherInfo;
         })
         .catch(() => null);
 
@@ -228,45 +406,16 @@ export default function Index() {
 );
 out center 60;`;
 
-      const placesPromise = fetch(
-        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(
-          overpassQuery
-        )}`
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          if (!data.elements) {
-            return [] as Place[];
-          }
-          const mapped = (data.elements as any[])
-            .map((element) => {
-              const lat = element.lat ?? element.center?.lat;
-              const lon = element.lon ?? element.center?.lon;
-              if (lat === undefined || lon === undefined) {
-                return null;
-              }
-              const tags = element.tags ?? {};
-              const name =
-                tags.name ||
-                tags.shop ||
-                tags.amenity ||
-                tags.tourism ||
-                tags.leisure ||
-                "Place";
-              const category = tags.shop || tags.amenity || "motorbike workshop";
-              return {
-                id: String(element.id),
-                name,
-                category,
-                distanceMeters: haversineMeters(
-                  latitude,
-                  longitude,
-                  lat,
-                  lon
-                ),
-              } as Place;
-            })
-            .filter(Boolean) as Place[];
+      const placesPromise = searchPlacesByType('car_repair', { lat: latitude, lng: longitude }, 5000)
+        .then((googlePlaces) => {
+          const mapped = googlePlaces.map((place: any) => ({
+            id: place.place_id,
+            name: place.name,
+            category: 'motorbike workshop',
+            latitude: place.geometry.location.lat,
+            longitude: place.geometry.location.lng,
+            distanceMeters: haversineMeters(latitude, longitude, place.geometry.location.lat, place.geometry.location.lng),
+          } as Place));
           return mapped
             .sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0))
             .slice(0, 12);
@@ -424,6 +573,19 @@ out center 60;`;
                   title="You are here"
                 />
               )}
+              {places.map((place) => (
+                NativeMarker && (
+                  <NativeMarker
+                    key={place.id}
+                    coordinate={{
+                      latitude: place.latitude,
+                      longitude: place.longitude,
+                    }}
+                    title={place.name}
+                    description={place.category}
+                  />
+                )
+              ))}
             </NativeMapView>
           </View>
         )}
@@ -457,6 +619,7 @@ out center 60;`;
               onLoad={() => {
                 setMapImageLoaded(true);
                 setMapImageLoading(false);
+                setMapErrorMessage(null);
               }}
               onError={() => {
                 setMapErrorMessage("Image failed to load");
@@ -552,6 +715,67 @@ out center 60;`;
           <Text style={styles.bodyText}>
             Rain chance {weather.precipitationProbability ?? 0}%
           </Text>
+
+          {/* Riding Conditions */}
+          {ridingConditions && (
+            <View style={styles.ridingConditions}>
+              <View style={styles.ridingScoreRow}>
+                <Text style={styles.ridingScoreLabel}>Riding Suitability:</Text>
+                <View style={styles.scoreContainer}>
+                  <Text style={[styles.ridingScore, getScoreColor(ridingConditions.score)]}>
+                    {ridingConditions.score}/100
+                  </Text>
+                  <Text style={[styles.suitabilityBadge, getSuitabilityStyle(ridingConditions.suitability)]}>
+                    {ridingConditions.suitability.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+
+              {ridingConditions.alerts.length > 0 && (
+                <View style={styles.ridingAlerts}>
+                  <Text style={styles.alertsTitle}>⚠️ Riding Alerts:</Text>
+                  {ridingConditions.alerts.map((alert, index) => (
+                    <Text key={index} style={styles.alertText}>• {alert}</Text>
+                  ))}
+                </View>
+              )}
+
+              {ridingConditions.recommendations.length > 0 && (
+                <View style={styles.ridingRecommendations}>
+                  <Text style={styles.recommendationsTitle}>💡 Recommendations:</Text>
+                  {ridingConditions.recommendations.map((rec, index) => (
+                    <Text key={index} style={styles.recommendationText}>• {rec}</Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* 3-Day Forecast */}
+          {weather.dailyForecast && weather.dailyForecast.time.length > 0 && (
+            <View style={styles.forecastContainer}>
+              <Text style={styles.forecastTitle}>3-Day Forecast</Text>
+              <View style={styles.forecastGrid}>
+                {weather.dailyForecast.time.slice(0, 3).map((date, index) => (
+                  <View key={date} style={styles.forecastDay}>
+                    <Text style={styles.forecastDate}>
+                      {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </Text>
+                    <Text style={styles.forecastEmoji}>
+                      {weatherEmoji(weather.dailyForecast?.weatherCode[index])}
+                    </Text>
+                    <Text style={styles.forecastTemp}>
+                      {weather.dailyForecast?.temperatureMax[index]?.toFixed(0)}° / {weather.dailyForecast?.temperatureMin[index]?.toFixed(0)}°
+                    </Text>
+                    <Text style={styles.forecastPrecip}>
+                      {weather.dailyForecast?.precipitationProbabilityMax[index]}% rain
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           <Pressable
             style={styles.secondaryButton}
             onPress={() => Linking.openURL(weatherUrl).catch(() => null)}
@@ -572,7 +796,30 @@ out center 60;`;
         </View>
       )}
 
-
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Quick Access</Text>
+        <View style={styles.quickAccessGrid}>
+          <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/restaurants')}>
+            <Ionicons name="restaurant" size={24} color="#38bdf8" />
+            <Text style={styles.quickAccessText}>Restaurants</Text>
+          </Pressable>
+          <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/hotels')}>
+            <View style={styles.hotelIcon}>
+              <Ionicons name="bed" size={16} color="#38bdf8" />
+              <Ionicons name="star" size={12} color="#38bdf8" style={{ marginLeft: -4 }} />
+            </View>
+            <Text style={styles.quickAccessText}>Hotels</Text>
+          </Pressable>
+          <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/attractions')}>
+            <Ionicons name="camera" size={24} color="#38bdf8" />
+            <Text style={styles.quickAccessText}>Attractions</Text>
+          </Pressable>
+          <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/mc')}>
+            <Ionicons name="construct" size={24} color="#38bdf8" />
+            <Text style={styles.quickAccessText}>MC Services</Text>
+          </Pressable>
+        </View>
+      </View>
 
       {lastUpdated && (
         <Text style={styles.metaText}>
@@ -757,5 +1004,138 @@ const styles = StyleSheet.create({
   },
   weatherEmoji: {
     fontSize: 36,
+  },
+  quickAccessGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  quickAccessButton: {
+    flex: 1,
+    minWidth: 80,
+    backgroundColor: "#1e293b",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  quickAccessText: {
+    color: "#e2e8f0",
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  hotelIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ridingConditions: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#334155",
+  },
+  ridingScoreRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  ridingScoreLabel: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  scoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  ridingScore: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  suitabilityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  ridingAlerts: {
+    marginBottom: 12,
+  },
+  alertsTitle: {
+    color: "#f59e0b",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  alertText: {
+    color: "#f59e0b",
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  ridingRecommendations: {
+    marginBottom: 12,
+  },
+  recommendationsTitle: {
+    color: "#38bdf8",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  recommendationText: {
+    color: "#38bdf8",
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  forecastContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#334155",
+  },
+  forecastTitle: {
+    color: "#e2e8f0",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  forecastGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  forecastDay: {
+    flex: 1,
+    backgroundColor: "#1e293b",
+    padding: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  forecastDate: {
+    color: "#e2e8f0",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  forecastEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  forecastTemp: {
+    color: "#f8fafc",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  forecastPrecip: {
+    color: "#94a3b8",
+    fontSize: 10,
   },
 });
