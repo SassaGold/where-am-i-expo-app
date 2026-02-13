@@ -155,10 +155,12 @@ export default function McScreen() {
       });
 
       // Search for motorcycle-related places using Google Places API
-      const [parkingPlaces, fuelPlaces, workshopPlaces] = await Promise.all([
-        searchPlacesByType('parking', { lat: latitude, lng: longitude }, 5000),
-        searchPlacesByType('gas_station', { lat: latitude, lng: longitude }, 5000),
-        searchPlacesByType('car_repair', { lat: latitude, lng: longitude }, 5000), // Using car_repair as closest match for motorcycle repair
+      const [parkingPlaces, fuelPlaces, workshopPlaces, dealerPlaces, storePlaces] = await Promise.all([
+        searchPlacesByType('parking', { lat: latitude, lng: longitude }, 20000),
+        searchPlacesByType('gas_station', { lat: latitude, lng: longitude }, 20000),
+        searchPlacesByType('motorcycle repair', { lat: latitude, lng: longitude }, 20000), // Search for motorcycle repair shops
+        searchPlacesByType('motorcycle dealer', { lat: latitude, lng: longitude }, 20000), // Search for motorcycle dealers
+        searchPlacesByType('motorcycle store', { lat: latitude, lng: longitude }, 20000), // Search for motorcycle stores
       ]);
 
       // Convert Google Places results to our Place format
@@ -184,7 +186,7 @@ export default function McScreen() {
         fee: false,
       } as Place));
 
-      const workshopResults = workshopPlaces.map((place: any) => ({
+      const workshopResults = [...workshopPlaces, ...dealerPlaces, ...storePlaces].map((place: any) => ({
         id: place.place_id,
         name: place.name,
         category: 'workshop',
@@ -195,13 +197,18 @@ export default function McScreen() {
         fee: false,
       } as Place));
 
-      const sortedParking = parkingResults
+      // Deduplicate results
+      const uniqueParking = [...new Map(parkingResults.map(place => [place.id, place])).values()];
+      const uniqueFuel = [...new Map(fuelResults.map(place => [place.id, place])).values()];
+      const uniqueWorkshops = [...new Map(workshopResults.map(place => [place.id, place])).values()];
+
+      const sortedParking = uniqueParking
         .sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0))
         .slice(0, 20);
-      const sortedFuel = fuelResults
+      const sortedFuel = uniqueFuel
         .sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0))
         .slice(0, 20);
-      const sortedWorkshops = workshopResults
+      const sortedWorkshops = uniqueWorkshops
         .sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0))
         .slice(0, 20);
 
@@ -379,6 +386,12 @@ export default function McScreen() {
             >
               <Text style={[styles.filterButtonText, distanceFilter === 10000 && styles.filterButtonTextActive]}>10km</Text>
             </Pressable>
+            <Pressable
+              style={[styles.filterButton, distanceFilter === 20000 && styles.filterButtonActive]}
+              onPress={() => setDistanceFilter(20000)}
+            >
+              <Text style={[styles.filterButtonText, distanceFilter === 20000 && styles.filterButtonTextActive]}>20km</Text>
+            </Pressable>
           </View>
         </View>
         <View style={styles.filterRow}>
@@ -469,7 +482,7 @@ export default function McScreen() {
             const matchesFreeParking = !freeParkingOnly || p.fee === true;
             return matchesSearch && matchesDistance && matchesCategory && matchesFreeParking;
           }).map((place) => (
-            <View key={place.id} style={styles.placeRow}>
+            <View key={`parking-${place.id}`} style={styles.placeRow}>
               <Pressable
                 style={styles.placeInfo}
                 onPress={() => openPlaceDetails(place)}
@@ -540,7 +553,7 @@ export default function McScreen() {
             const matchesFreeParking = !freeParkingOnly;
             return matchesSearch && matchesDistance && matchesCategory && matchesFreeParking;
           }).map((place) => (
-            <View key={place.id} style={styles.placeRow}>
+            <View key={`fuel-${place.id}`} style={styles.placeRow}>
               <Pressable
                 style={styles.placeInfo}
                 onPress={() => openInMaps(place)}
@@ -553,6 +566,12 @@ export default function McScreen() {
                   {formatDistance(place.distanceMeters)}
                 </Text>
                 <View style={styles.buttonRow}>
+                  <Pressable
+                    style={styles.detailsButton}
+                    onPress={() => openPlaceDetails(place)}
+                  >
+                    <Ionicons name="information-circle" size={16} color="#38bdf8" />
+                  </Pressable>
                   <Pressable
                     style={styles.waypointButton}
                     onPress={() => savePlaceAsWaypoint(place)}
@@ -618,7 +637,7 @@ export default function McScreen() {
             const matchesFreeParking = !freeParkingOnly;
             return matchesSearch && matchesDistance && matchesCategory && matchesFreeParking;
           }).map((place) => (
-            <View key={place.id} style={styles.placeRow}>
+            <View key={`workshop-${place.id}`} style={styles.placeRow}>
               <Pressable
                 style={styles.placeInfo}
                 onPress={() => openInMaps(place)}
@@ -631,6 +650,12 @@ export default function McScreen() {
                   {formatDistance(place.distanceMeters)}
                 </Text>
                 <View style={styles.buttonRow}>
+                  <Pressable
+                    style={styles.detailsButton}
+                    onPress={() => openPlaceDetails(place)}
+                  >
+                    <Ionicons name="information-circle" size={16} color="#38bdf8" />
+                  </Pressable>
                   <Pressable
                     style={styles.waypointButton}
                     onPress={() => savePlaceAsWaypoint(place)}
@@ -667,7 +692,7 @@ export default function McScreen() {
               return matchesSearch && matchesDistance && matchesCategory && matchesFreeParking;
             }).map((place) => (
               <Marker
-                key={place.id}
+                key={`parking-${place.id}`}
                 coordinate={{ latitude: place.latitude, longitude: place.longitude }}
                 title={place.name}
                 description={place.category}
@@ -685,7 +710,7 @@ export default function McScreen() {
               return matchesSearch && matchesDistance && matchesCategory && matchesFreeParking;
             }).map((place) => (
               <Marker
-                key={place.id}
+                key={`fuel-${place.id}`}
                 coordinate={{ latitude: place.latitude, longitude: place.longitude }}
                 title={place.name}
                 description={place.category}
@@ -703,7 +728,7 @@ export default function McScreen() {
               return matchesSearch && matchesDistance && matchesCategory && matchesFreeParking;
             }).map((place) => (
               <Marker
-                key={place.id}
+                key={`workshop-${place.id}`}
                 coordinate={{ latitude: place.latitude, longitude: place.longitude }}
                 title={place.name}
                 description={place.category}

@@ -198,30 +198,8 @@ export const getPlaceDetails = async (placeId: string): Promise<any> => {
 };
 
 export const getPlacePhotos = async (photoReferences: string[]): Promise<string[]> => {
-  if (!photoReferences || photoReferences.length === 0) return [];
-
-  try {
-    const photoPromises = photoReferences.slice(0, 3).map(async (photoRef) => {
-      // Use direct API calls for both web and mobile (Netlify functions are for production only)
-      const url = `https://maps.googleapis.com/maps/api/place/photo?` +
-        `maxwidth=400&` +
-        `photoreference=${photoRef}&` +
-        `key=${GOOGLE_PLACES_API_KEY}`;
-
-      const response = await fetch(url);
-
-      if (response.ok) {
-        return response.url;
-      }
-      return null;
-    });
-
-    const photos = await Promise.all(photoPromises);
-    return photos.filter(Boolean) as string[];
-  } catch (error) {
-    console.log('Error fetching place photos:', error);
-    return [];
-  }
+  // Skipping photo loading due to API restrictions
+  return [];
 };
 
 const generatePlaceDescription = (placeDetails: any, originalPlace: Place): string => {

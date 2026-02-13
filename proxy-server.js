@@ -111,6 +111,28 @@ app.get('/api/places/photo', async (req, res) => {
   }
 });
 
+app.get('/api/geocode/reverse', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+
+    console.log('Proxying reverse geocode to:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'leander-location-app'
+      }
+    });
+    const data = await response.json();
+
+    res.json(data);
+  } catch (error) {
+    console.error('Proxy error:', error);
+    res.status(500).json({ error: 'Proxy error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`CORS proxy server running on http://localhost:${PORT}`);
 });

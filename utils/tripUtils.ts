@@ -90,12 +90,16 @@ export const getWaypoints = async (): Promise<Waypoint[]> => {
 };
 
 export const deleteWaypoint = async (waypointId: string) => {
+  console.log("deleteWaypoint called with id:", waypointId);
   try {
     const existingData = await storage.getItem(STORAGE_KEY_WAYPOINTS);
     const waypoints: Waypoint[] = existingData ? JSON.parse(existingData) : [];
+    console.log("Current waypoints count:", waypoints.length);
 
     const filteredWaypoints = waypoints.filter(w => w.id !== waypointId);
+    console.log("Filtered waypoints count:", filteredWaypoints.length);
     await storage.setItem(STORAGE_KEY_WAYPOINTS, JSON.stringify(filteredWaypoints));
+    console.log("Waypoint deleted successfully");
   } catch (error) {
     console.error("Error deleting waypoint:", error);
     throw error;
@@ -138,12 +142,16 @@ export const getRoutes = async (): Promise<Route[]> => {
 };
 
 export const deleteRoute = async (routeId: string) => {
+  console.log("deleteRoute called with id:", routeId);
   try {
     const existingData = await storage.getItem(STORAGE_KEY_ROUTES);
     const routes: Route[] = existingData ? JSON.parse(existingData) : [];
+    console.log("Current routes count:", routes.length);
 
     const filteredRoutes = routes.filter(r => r.id !== routeId);
+    console.log("Filtered routes count:", filteredRoutes.length);
     await storage.setItem(STORAGE_KEY_ROUTES, JSON.stringify(filteredRoutes));
+    console.log("Route deleted successfully");
   } catch (error) {
     console.error("Error deleting route:", error);
     throw error;

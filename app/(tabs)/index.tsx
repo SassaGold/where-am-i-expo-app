@@ -340,21 +340,55 @@ export default function Index() {
 
       const { latitude, longitude } = position.coords;
 
-      const addressPromise = fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
-        {
-          headers: {
-            "User-Agent": "leander-location-app",
-          },
+      // Helper function to detect if we're running on Netlify (production)
+      const isProduction = (): boolean => {
+        if (Platform.OS !== 'web') return false;
+        return typeof window !== 'undefined' && window.location.hostname.includes('netlify');
+      };
+
+      const addressPromise = (async () => {
+        try {
+          let url;
+          if (isProduction()) {
+            url = `/.netlify/functions/places-reverse-geocode?lat=${latitude}&lng=${longitude}`;
+          } else if (Platform.OS === 'web') {
+            url = `http://localhost:3001/api/geocode/reverse?lat=${latitude}&lng=${longitude}`;
+          } else {
+            // For mobile, use Google Geocoding API directly
+            url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${Constants.expoConfig?.extra?.googleMapsApiKey || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`;
+          }
+
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (isProduction() || Platform.OS !== 'web') {
+            // Google API response
+            if (data.status === 'OK' && data.results && data.results.length > 0) {
+              const result = data.results[0];
+              const addressComponents = result.address_components;
+              const city = addressComponents.find((c: any) => c.types.includes('locality'))?.long_name ||
+                          addressComponents.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
+              const country = addressComponents.find((c: any) => c.types.includes('country'))?.long_name;
+              return {
+                displayName: result.formatted_address,
+                city,
+                country,
+              };
+            }
+          } else {
+            // Proxy response (nominatim format)
+            return {
+              displayName: data.display_name as string,
+              city: data.address?.city || data.address?.town || data.address?.village,
+              country: data.address?.country,
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error('Error fetching address:', error);
+          return null;
         }
-      )
-        .then((response) => response.json())
-        .then((data) => ({
-          displayName: data.display_name as string,
-          city: data.address?.city || data.address?.town || data.address?.village,
-          country: data.address?.country,
-        }))
-        .catch(() => null);
+      })();
 
       const weatherPromise = fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,precipitation,weather_code&hourly=temperature_2m,precipitation,precipitation_probability,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max&forecast_days=3&timezone=auto`

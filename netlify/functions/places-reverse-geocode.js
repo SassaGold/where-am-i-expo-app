@@ -1,16 +1,10 @@
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 exports.handler = async (event, context) => {
-  const { query, location, radius } = event.queryStringParameters;
+  const { lat, lng } = event.queryStringParameters;
 
   try {
-    let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?` +
-      `query=${encodeURIComponent(query)}&` +
-      `key=${GOOGLE_PLACES_API_KEY}`;
-
-    if (location) {
-      url += `&location=${location}&radius=${radius || 2000}`;
-    }
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_PLACES_API_KEY}`;
 
     const response = await fetch(url);
     const data = await response.json();

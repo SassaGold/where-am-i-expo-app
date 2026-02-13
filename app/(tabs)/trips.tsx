@@ -50,10 +50,18 @@ export default function TripsScreen() {
   };
 
   const removeWaypoint = async (waypointId: string) => {
+    console.log("Removing waypoint:", waypointId);
+    console.log("Current waypoints ids:", waypoints.map(w => w.id));
     try {
       await deleteWaypoint(waypointId);
-      setWaypoints(prev => prev.filter(w => w.id !== waypointId));
+      console.log("Waypoint deleted from storage");
+      setWaypoints(prev => {
+        const filtered = prev.filter(w => w.id !== waypointId);
+        console.log("Waypoints before:", prev.length, "after:", filtered.length);
+        return filtered;
+      });
     } catch (error) {
+      console.error("Error deleting waypoint:", error);
       Alert.alert("Error", "Failed to delete waypoint");
     }
   };
@@ -92,10 +100,17 @@ export default function TripsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            console.log("Deleting route:", routeId);
             try {
               await deleteRouteFromUtils(routeId);
-              setRoutes(prev => prev.filter(r => r.id !== routeId));
+              console.log("Route deleted from storage");
+              setRoutes(prev => {
+                const filtered = prev.filter(r => r.id !== routeId);
+                console.log("Routes before:", prev.length, "after:", filtered.length);
+                return filtered;
+              });
             } catch (error) {
+              console.error("Error deleting route:", error);
               Alert.alert("Error", "Failed to delete route");
             }
           },
@@ -517,5 +532,9 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 6,
     backgroundColor: "#334155",
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
