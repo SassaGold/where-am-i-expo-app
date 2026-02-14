@@ -18,6 +18,14 @@ export interface Theme {
     error: string;
     success: string;
     warning: string;
+    // Additional colors for visual appeal
+    headerBg: string;
+    headerGlow: string;
+    headerGlowSecondary: string;
+    cardBg: string;
+    cardBorder: string;
+    glowPrimary: string;
+    glowAccent: string;
   };
 }
 
@@ -35,6 +43,14 @@ const lightTheme: Theme = {
     error: '#ef4444',
     success: '#10b981',
     warning: '#f59e0b',
+    // Additional colors for visual appeal
+    headerBg: '#f0f9ff',
+    headerGlow: 'rgba(59,130,246,0.3)',
+    headerGlowSecondary: 'rgba(139,92,246,0.2)',
+    cardBg: '#ffffff',
+    cardBorder: '#e2e8f0',
+    glowPrimary: 'rgba(59,130,246,0.4)',
+    glowAccent: 'rgba(245,158,11,0.3)',
   },
 };
 
@@ -52,6 +68,14 @@ const darkTheme: Theme = {
     error: '#f87171',
     success: '#22c55e',
     warning: '#f59e0b',
+    // Additional colors for visual appeal
+    headerBg: '#3b0764',
+    headerGlow: 'rgba(236,72,153,0.55)',
+    headerGlowSecondary: 'rgba(59,130,246,0.45)',
+    cardBg: '#1b1030',
+    cardBorder: '#2d1b4d',
+    glowPrimary: 'rgba(56,189,248,0.4)',
+    glowAccent: 'rgba(245,158,11,0.3)',
   },
 };
 
@@ -69,6 +93,14 @@ const bikerTheme: Theme = {
     error: '#ff4757',
     success: '#2ed573',
     warning: '#ffa502',
+    // Additional colors for visual appeal
+    headerBg: '#2a1810',
+    headerGlow: 'rgba(255,107,53,0.6)',
+    headerGlowSecondary: 'rgba(255,204,0,0.4)',
+    cardBg: '#2d2d2d',
+    cardBorder: '#404040',
+    glowPrimary: 'rgba(255,107,53,0.5)',
+    glowAccent: 'rgba(255,204,0,0.4)',
   },
 };
 
