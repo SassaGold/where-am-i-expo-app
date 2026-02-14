@@ -16,6 +16,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Place } from "../../types/places";
 import { searchPlacesByType } from "../../utils/placeDetails";
+import { useTheme } from '../../utils/theme';
 
 let NativeMapView: any = null;
 let NativeMarker: any = null;
@@ -289,26 +290,298 @@ const calculateRidingConditions = (weather: WeatherInfo): RidingConditions => {
   };
 };
 
-const getScoreColor = (score: number) => {
-  if (score >= 80) return { color: '#10b981' }; // green
-  if (score >= 60) return { color: '#84cc16' }; // lime
-  if (score >= 40) return { color: '#f59e0b' }; // amber
-  if (score >= 20) return { color: '#f97316' }; // orange
-  return { color: '#ef4444' }; // red
+const getScoreColor = (score: number, theme: any) => {
+  if (score >= 80) return { color: theme.colors.success }; // green
+  if (score >= 60) return { color: theme.colors.primary }; // lime
+  if (score >= 40) return { color: theme.colors.accent }; // amber
+  if (score >= 20) return { color: theme.colors.warning }; // orange
+  return { color: theme.colors.error }; // red
 };
 
-const getSuitabilityStyle = (suitability: RidingConditions['suitability']) => {
+const getSuitabilityStyle = (suitability: RidingConditions['suitability'], theme: any) => {
   switch (suitability) {
-    case 'excellent': return { backgroundColor: '#10b981', color: '#fff' };
-    case 'good': return { backgroundColor: '#84cc16', color: '#fff' };
-    case 'fair': return { backgroundColor: '#f59e0b', color: '#fff' };
-    case 'poor': return { backgroundColor: '#f97316', color: '#fff' };
-    case 'dangerous': return { backgroundColor: '#ef4444', color: '#fff' };
-    default: return { backgroundColor: '#6b7280', color: '#fff' };
+    case 'excellent': return { backgroundColor: theme.colors.success, color: theme.colors.surface };
+    case 'good': return { backgroundColor: theme.colors.primary, color: theme.colors.surface };
+    case 'fair': return { backgroundColor: theme.colors.accent, color: theme.colors.surface };
+    case 'poor': return { backgroundColor: theme.colors.warning, color: theme.colors.surface };
+    case 'dangerous': return { backgroundColor: theme.colors.error, color: theme.colors.surface };
+    default: return { backgroundColor: theme.colors.textSecondary, color: theme.colors.surface };
   }
 };
 
+const getStyles = (theme: any): ReturnType<typeof StyleSheet.create> => StyleSheet.create({
+  container: {
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    marginTop: 18,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    position: 'relative',
+  },
+  headerGlow: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: theme.colors.primary,
+    top: -80,
+    right: -40,
+    opacity: 0.3,
+  },
+  headerGlowSecondary: {
+    position: "absolute",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: theme.colors.accent,
+    bottom: -60,
+    left: -20,
+    opacity: 0.2,
+  },
+  headerBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.text,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+    letterSpacing: 0.4,
+  },
+  title: {
+    color: theme.colors.text,
+    fontSize: 32,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  subtitle: {
+    color: theme.colors.textSecondary,
+    marginTop: 6,
+    fontSize: 16,
+  },
+  primaryButton: {
+    backgroundColor: theme.colors.accent,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: theme.colors.accent,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  primaryButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: theme.colors.text,
+    fontSize: 14,
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  loadingText: {
+    color: theme.colors.textSecondary,
+  },
+  errorText: {
+    color: theme.colors.error,
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.text,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  alertCard: {
+    borderColor: theme.colors.accent,
+    borderWidth: 1,
+  },
+  cardTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  bodyText: {
+    color: theme.colors.text,
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  metaText: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+  },
+  mapImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  mapNative: {
+    width: "100%",
+    height: 220,
+  },
+  attributionText: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
+    marginTop: 6,
+  },
+  placeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  placeInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  placeName: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  placeDistance: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+  },
+  weatherCard: {
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  weatherHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  weatherTemp: {
+    color: theme.colors.text,
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  weatherDesc: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+  },
+  weatherDetails: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  weatherDetail: {
+    alignItems: "center",
+  },
+  weatherDetailValue: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  weatherDetailLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+  },
+  forecastContainer: {
+    marginTop: 16,
+  },
+  forecastTitle: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  forecastRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  forecastTime: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  forecastTemp: {
+    color: theme.colors.text,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  forecastPrecip: {
+    color: theme.colors.textSecondary,
+    fontSize: 10,
+  },
+  themeToggle: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 10,
+    minWidth: 100,
+    minHeight: 44,
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  themeToggleText: {
+    color: theme.colors.surface,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
+
 export default function Index() {
+  const { theme, toggleTheme, themeType } = useTheme();
+  const styles = getStyles(theme);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState<GeoAddress | null>(null);
@@ -581,6 +854,22 @@ out center 60;`;
         <Text style={styles.headerBadge}>Live nearby</Text>
         <Text style={styles.title}>Where Am I?</Text>
         <Text style={styles.subtitle}>Your location and what’s around you.</Text>
+        <Pressable
+          style={[styles.themeToggle, { backgroundColor: theme.colors.primary }]}
+          onPress={() => {
+            console.log('Theme button pressed, current theme:', themeType);
+            toggleTheme();
+          }}
+        >
+          <Ionicons 
+            name={themeType === 'light' ? 'sunny' : themeType === 'dark' ? 'moon' : 'bicycle'} 
+            size={20} 
+            color={theme.colors.surface} 
+          />
+          <Text style={styles.themeToggleText}>
+            {themeType === 'light' ? 'Light' : themeType === 'dark' ? 'Dark' : 'Biker'}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.card}>
@@ -756,10 +1045,10 @@ out center 60;`;
               <View style={styles.ridingScoreRow}>
                 <Text style={styles.ridingScoreLabel}>Riding Suitability:</Text>
                 <View style={styles.scoreContainer}>
-                  <Text style={[styles.ridingScore, getScoreColor(ridingConditions.score)]}>
+                  <Text style={[styles.ridingScore, getScoreColor(ridingConditions.score, theme)]}>
                     {ridingConditions.score}/100
                   </Text>
-                  <Text style={[styles.suitabilityBadge, getSuitabilityStyle(ridingConditions.suitability)]}>
+                  <Text style={[styles.suitabilityBadge, getSuitabilityStyle(ridingConditions.suitability, theme)]}>
                     {ridingConditions.suitability.toUpperCase()}
                   </Text>
                 </View>
@@ -834,22 +1123,22 @@ out center 60;`;
         <Text style={styles.cardTitle}>Quick Access</Text>
         <View style={styles.quickAccessGrid}>
           <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/restaurants')}>
-            <Ionicons name="restaurant" size={24} color="#38bdf8" />
+            <Ionicons name="restaurant" size={24} color={theme.colors.primary} />
             <Text style={styles.quickAccessText}>Restaurants</Text>
           </Pressable>
           <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/hotels')}>
             <View style={styles.hotelIcon}>
-              <Ionicons name="bed" size={16} color="#38bdf8" />
-              <Ionicons name="star" size={12} color="#38bdf8" style={{ marginLeft: -4 }} />
+              <Ionicons name="bed" size={16} color={theme.colors.primary} />
+              <Ionicons name="star" size={12} color={theme.colors.primary} style={{ marginLeft: -4 }} />
             </View>
             <Text style={styles.quickAccessText}>Hotels</Text>
           </Pressable>
           <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/attractions')}>
-            <Ionicons name="camera" size={24} color="#38bdf8" />
+            <Ionicons name="camera" size={24} color={theme.colors.primary} />
             <Text style={styles.quickAccessText}>Attractions</Text>
           </Pressable>
           <Pressable style={styles.quickAccessButton} onPress={() => router.push('/(tabs)/mc')}>
-            <Ionicons name="construct" size={24} color="#38bdf8" />
+            <Ionicons name="construct" size={24} color={theme.colors.primary} />
             <Text style={styles.quickAccessText}>MC Services</Text>
           </Pressable>
         </View>
@@ -864,312 +1153,4 @@ out center 60;`;
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    paddingBottom: 40,
-    backgroundColor: "#0f0a1a",
-  },
-  header: {
-    marginTop: 18,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    overflow: "hidden",
-    backgroundColor: "#3b0764",
-  },
-  headerGlow: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(236,72,153,0.55)",
-    top: -80,
-    right: -40,
-  },
-  headerGlowSecondary: {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(59,130,246,0.45)",
-    bottom: -60,
-    left: -20,
-  },
-  headerBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(15,10,26,0.35)",
-    color: "#f8fafc",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 8,
-    letterSpacing: 0.4,
-  },
-  title: {
-    color: "#f8fafc",
-    fontSize: 32,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  subtitle: {
-    color: "#c4b5fd",
-    marginTop: 6,
-    fontSize: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#f59e0b",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#f59e0b",
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  primaryButtonText: {
-    color: "#2b0a3d",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#6d28d9",
-    backgroundColor: "#1b1030",
-    paddingVertical: 8,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-  },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  loadingText: {
-    color: "#cbd5f5",
-  },
-  errorText: {
-    color: "#f87171",
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: "#1b1030",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-    shadowColor: "#020617",
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  alertCard: {
-    borderColor: "#f59e0b",
-    borderWidth: 1,
-  },
-  cardTitle: {
-    color: "#f8fafc",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  bodyText: {
-    color: "#e2e8f0",
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  metaText: {
-    color: "#94a3b8",
-    fontSize: 13,
-  },
-  mapImage: {
-    width: "100%",
-    height: 180,
-    borderRadius: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-  },
-  mapNativeContainer: {
-    marginTop: 12,
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-  },
-  mapNative: {
-    width: "100%",
-    height: 220,
-  },
-  attributionText: {
-    color: "#c4b5fd",
-    fontSize: 11,
-    marginTop: 6,
-  },
-  placeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  placeInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  weatherRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 6,
-  },
-  weatherEmoji: {
-    fontSize: 36,
-  },
-  quickAccessGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  quickAccessButton: {
-    flex: 1,
-    minWidth: 80,
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  quickAccessText: {
-    color: "#e2e8f0",
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: "center",
-  },
-  hotelIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ridingConditions: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#334155",
-  },
-  ridingScoreRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  ridingScoreLabel: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  scoreContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  ridingScore: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  suitabilityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 10,
-    fontWeight: "bold",
-  },
-  ridingAlerts: {
-    marginBottom: 12,
-  },
-  alertsTitle: {
-    color: "#f59e0b",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  alertText: {
-    color: "#f59e0b",
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  ridingRecommendations: {
-    marginBottom: 12,
-  },
-  recommendationsTitle: {
-    color: "#38bdf8",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  recommendationText: {
-    color: "#38bdf8",
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  forecastContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#334155",
-  },
-  forecastTitle: {
-    color: "#e2e8f0",
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  forecastGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  forecastDay: {
-    flex: 1,
-    backgroundColor: "#1e293b",
-    padding: 8,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  forecastDate: {
-    color: "#e2e8f0",
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  forecastEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  forecastTemp: {
-    color: "#f8fafc",
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  forecastPrecip: {
-    color: "#94a3b8",
-    fontSize: 10,
-  },
-});
+// Old styles removed - now using getStyles(theme)

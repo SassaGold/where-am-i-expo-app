@@ -48,6 +48,7 @@ export const searchGooglePlaces = async (query: string, location: { lat: number;
         `radius=${radius}`;
       if (type) url += `&type=${type}`;
     } else if (Platform.OS === 'web') {
+      // Use local proxy for development to avoid CORS
       url = `http://localhost:3001/api/places/nearbysearch?` +
         `location=${location.lat},${location.lng}&` +
         `radius=${radius}&` +
@@ -93,6 +94,7 @@ export const searchPlacesByType = async (type: string, location: { lat: number; 
         `radius=${radius}&` +
         `type=${googleType || type}`;
     } else if (Platform.OS === 'web') {
+      // Use local proxy for development to avoid CORS
       url = `http://localhost:3001/api/places/nearbysearch?` +
         `location=${location.lat},${location.lng}&` +
         `radius=${radius}&` +
@@ -136,6 +138,7 @@ export const findGooglePlace = async (textQuery: string, location?: { lat: numbe
         url += `&location=${location.lat},${location.lng}&radius=2000`;
       }
     } else if (Platform.OS === 'web') {
+      // Use local proxy for development to avoid CORS
       url = `http://localhost:3001/api/places/textsearch?` +
         `query=${encodeURIComponent(textQuery)}`;
       if (location) {
@@ -173,6 +176,7 @@ export const getPlaceDetails = async (placeId: string): Promise<any> => {
       url = `/.netlify/functions/places-details?` +
         `placeId=${placeId}`;
     } else if (Platform.OS === 'web') {
+      // Use local proxy for development to avoid CORS
       url = `http://localhost:3001/api/places/details?` +
         `place_id=${placeId}`;
     } else {

@@ -13,6 +13,210 @@ import {
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { Waypoint, Route, saveWaypoint, getWaypoints, deleteWaypoint, saveRoute, getRoutes, deleteRoute as deleteRouteFromUtils } from "../../utils/tripUtils";
+import { useTheme, Theme } from '../../utils/theme';
+
+const getStyles = (theme: Theme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+  card: {
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    margin: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.text,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+    // @ts-ignore - for web compatibility
+    boxShadow: `0 8px 12px ${theme.colors.text}40`,
+  },
+  cardTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  bodyText: {
+    color: theme.colors.text,
+    fontSize: 15,
+    marginBottom: 8,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  actionButtonText: {
+    color: theme.colors.text,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  input: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: 12,
+    color: theme.colors.text,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  primaryButton: {
+    backgroundColor: theme.colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  secondaryButtonText: {
+    color: theme.colors.text,
+    fontSize: 14,
+  },
+  routeItem: {
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  routeHeader: {
+    marginBottom: 8,
+  },
+  routeName: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  routeMeta: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+  },
+  waypointItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  waypointInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  waypointName: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  waypointMeta: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  waypointNote: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  waypointSelector: {
+    maxHeight: 200,
+    marginBottom: 12,
+  },
+  waypointSelectorItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  waypointSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: theme.colors.secondary,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  waypointSelectorInfo: {
+    flex: 1,
+  },
+  waypointActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  iconButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: theme.colors.secondary,
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.error,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.error,
+  },
+});
 
 export default function TripsScreen() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -21,6 +225,9 @@ export default function TripsScreen() {
   const [routeName, setRouteName] = useState("");
   const [showCreateRoute, setShowCreateRoute] = useState(false);
   const [selectedWaypointIds, setSelectedWaypointIds] = useState<Set<string>>(new Set());
+
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
 
   useEffect(() => {
     loadData();
@@ -91,32 +298,55 @@ export default function TripsScreen() {
   };
 
   const deleteRoute = async (routeId: string) => {
-    Alert.alert(
-      "Delete Route",
-      "Are you sure you want to delete this route?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            console.log("Deleting route:", routeId);
-            try {
-              await deleteRouteFromUtils(routeId);
-              console.log("Route deleted from storage");
-              setRoutes(prev => {
-                const filtered = prev.filter(r => r.id !== routeId);
-                console.log("Routes before:", prev.length, "after:", filtered.length);
-                return filtered;
-              });
-            } catch (error) {
-              console.error("Error deleting route:", error);
-              Alert.alert("Error", "Failed to delete route");
-            }
+    console.log("deleteRoute called with id:", routeId);
+    
+    if (Platform.OS === 'web') {
+      // Use browser confirm for web
+      const confirmed = window.confirm("Are you sure you want to delete this route?");
+      if (confirmed) {
+        console.log("Delete confirmed for route:", routeId);
+        try {
+          await deleteRouteFromUtils(routeId);
+          console.log("Route deleted from storage");
+          setRoutes(prev => {
+            const filtered = prev.filter(r => r.id !== routeId);
+            console.log("Routes before:", prev.length, "after:", filtered.length);
+            return filtered;
+          });
+        } catch (error) {
+          console.error("Error deleting route:", error);
+          alert("Failed to delete route");
+        }
+      }
+    } else {
+      // Use RN Alert for mobile
+      Alert.alert(
+        "Delete Route",
+        "Are you sure you want to delete this route?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              console.log("Delete confirmed for route:", routeId);
+              try {
+                await deleteRouteFromUtils(routeId);
+                console.log("Route deleted from storage");
+                setRoutes(prev => {
+                  const filtered = prev.filter(r => r.id !== routeId);
+                  console.log("Routes before:", prev.length, "after:", filtered.length);
+                  return filtered;
+                });
+              } catch (error) {
+                console.error("Error deleting route:", error);
+                Alert.alert("Error", "Failed to delete route");
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const openInNavigation = async (waypoints: Waypoint[]) => {
@@ -195,11 +425,11 @@ export default function TripsScreen() {
         <Text style={styles.cardTitle}>Quick Actions</Text>
         <View style={styles.buttonRow}>
           <Pressable style={styles.actionButton} onPress={addCurrentLocationAsWaypoint}>
-            <Ionicons name="location" size={20} color="#38bdf8" />
+            <Ionicons name="location" size={20} color={theme.colors.primary} />
             <Text style={styles.actionButtonText}>Add Current Location</Text>
           </Pressable>
           <Pressable style={styles.actionButton} onPress={() => setShowCreateRoute(true)}>
-            <Ionicons name="add-circle" size={20} color="#38bdf8" />
+            <Ionicons name="add-circle" size={20} color={theme.colors.primary} />
             <Text style={styles.actionButtonText}>Create Route</Text>
           </Pressable>
         </View>
@@ -212,7 +442,7 @@ export default function TripsScreen() {
           <TextInput
             style={styles.input}
             placeholder="Route name"
-            placeholderTextColor="#64748b"
+            placeholderTextColor={theme.colors.textSecondary}
             value={routeName}
             onChangeText={setRouteName}
           />
@@ -292,12 +522,15 @@ export default function TripsScreen() {
                   style={styles.secondaryButton}
                   onPress={() => openInNavigation(route.waypoints)}
                 >
-                  <Ionicons name="navigate" size={16} color="#38bdf8" />
+                  <Ionicons name="navigate" size={16} color={theme.colors.primary} />
                   <Text style={styles.secondaryButtonText}>Navigate</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.secondaryButton, { backgroundColor: "#dc2626" }]}
-                  onPress={() => deleteRoute(route.id)}
+                  style={styles.deleteButton}
+                  onPress={() => {
+                    console.log("Delete route button pressed for id:", route.id);
+                    deleteRoute(route.id);
+                  }}
                 >
                   <Ionicons name="trash" size={16} color="#fca5a5" />
                   <Text style={[styles.secondaryButtonText, { color: "#fca5a5" }]}>Delete</Text>
@@ -329,13 +562,27 @@ export default function TripsScreen() {
                   style={styles.iconButton}
                   onPress={() => openInNavigation([waypoint])}
                 >
-                  <Ionicons name="navigate" size={20} color="#38bdf8" />
+                  <Ionicons name="navigate" size={20} color={theme.colors.primary} />
                 </Pressable>
                 <Pressable
                   style={styles.iconButton}
-                  onPress={() => removeWaypoint(waypoint.id)}
+                  onPress={() => {
+                    console.log("Delete waypoint pressed for id:", waypoint.id);
+                    Alert.alert(
+                      "Delete Waypoint",
+                      "Are you sure you want to delete this waypoint?",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Delete",
+                          style: "destructive",
+                          onPress: () => removeWaypoint(waypoint.id)
+                        }
+                      ]
+                    );
+                  }}
                 >
-                  <Ionicons name="trash" size={20} color="#dc2626" />
+                  <Ionicons name="trash" size={20} color={theme.colors.error} />
                 </Pressable>
               </View>
             </View>
@@ -345,196 +592,3 @@ export default function TripsScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0f172a",
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: "#1e293b",
-    borderBottomWidth: 1,
-    borderBottomColor: "#334155",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#f8fafc",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#94a3b8",
-  },
-  card: {
-    backgroundColor: "#1b1030",
-    padding: 16,
-    margin: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-    shadowColor: "#020617",
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  cardTitle: {
-    color: "#f8fafc",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  bodyText: {
-    color: "#e2e8f0",
-    fontSize: 15,
-    marginBottom: 8,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  actionButtonText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    marginTop: 4,
-  },
-  input: {
-    backgroundColor: "#1e293b",
-    borderWidth: 1,
-    borderColor: "#334155",
-    borderRadius: 8,
-    padding: 12,
-    color: "#f8fafc",
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  primaryButton: {
-    backgroundColor: "#38bdf8",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    color: "#0f172a",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  secondaryButtonText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-  },
-  routeItem: {
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  routeHeader: {
-    marginBottom: 8,
-  },
-  routeName: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  routeMeta: {
-    color: "#94a3b8",
-    fontSize: 12,
-  },
-  waypointItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  waypointInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  waypointName: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  waypointMeta: {
-    color: "#94a3b8",
-    fontSize: 12,
-    marginTop: 2,
-  },
-  waypointNote: {
-    color: "#cbd5e1",
-    fontSize: 14,
-    marginTop: 4,
-  },
-  waypointSelector: {
-    maxHeight: 200,
-    marginBottom: 12,
-  },
-  waypointSelectorItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  waypointSelected: {
-    borderColor: "#38bdf8",
-    backgroundColor: "#1e293b",
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: "#64748b",
-    borderRadius: 4,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  waypointSelectorInfo: {
-    flex: 1,
-  },
-  waypointActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  iconButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: "#334155",
-    minWidth: 36,
-    minHeight: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

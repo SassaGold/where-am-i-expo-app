@@ -11,6 +11,10 @@ const PORT = 3001;
 // Enable CORS for all routes
 app.use(cors());
 
+console.log('Proxy server starting...');
+console.log('Google Maps API Key loaded:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? 'YES' : 'NO');
+console.log('Key starts with:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.substring(0, 10) + '...');
+
 // Proxy endpoints for Google Places API
 app.get('/api/places/nearbysearch', async (req, res) => {
   try {

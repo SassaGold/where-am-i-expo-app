@@ -20,6 +20,7 @@ import { saveWaypoint } from "../../utils/tripUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Place, Review } from "../../types/places";
 import { enhancePlaceWithDetails, searchPlacesByType } from "../../utils/placeDetails";
+import { useTheme, Theme } from '../../utils/theme';
 
 let MapView: any = null;
 let Marker: any = null;
@@ -64,10 +65,356 @@ const formatDistance = (distance?: number) => {
   return `${(distance / 1000).toFixed(1)} km`;
 };
 
+const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleSheet.create({
+  container: {
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    marginTop: 18,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface,
+  },
+  headerGlow: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: theme.colors.primary + "40",
+    top: -80,
+    right: -40,
+  },
+  headerGlowSecondary: {
+    position: "absolute",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: theme.colors.accent + "30",
+    top: -60,
+    left: -30,
+  },
+  headerBadge: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  title: {
+    color: theme.colors.text,
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  searchContainer: {
+    marginBottom: 20,
+  },
+  searchInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    color: theme.colors.text,
+  },
+  filtersContainer: {
+    marginBottom: 20,
+  },
+  filterLabel: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  filterTitle: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 12,
+    minWidth: 60,
+  },
+  filterButtons: {
+    flexDirection: "row",
+    flex: 1,
+  },
+  filterButton: {
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  filterButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  filterButtonText: {
+    color: theme.colors.text,
+    fontSize: 14,
+  },
+  filterButtonTextActive: {
+    color: theme.colors.surface,
+  },
+  placeCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  placeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  placeName: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 12,
+  },
+  placeCategory: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  placeAddress: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  placeRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  ratingText: {
+    color: theme.colors.text,
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  placeActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  actionButton: {
+    backgroundColor: theme.colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  actionButtonText: {
+    color: theme.colors.surface,
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    maxHeight: "80%",
+    width: "90%",
+  },
+  modalTitle: {
+    color: theme.colors.text,
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  placeImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  placeDescription: {
+    color: theme.colors.text,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  placeDetails: {
+    marginBottom: 16,
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  detailLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  detailValue: {
+    color: theme.colors.text,
+    fontSize: 14,
+  },
+  closeButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  closeButtonText: {
+    color: theme.colors.surface,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  reviewCard: {
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  reviewAuthor: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  ratingContainer: {
+    flexDirection: "row",
+  },
+  reviewText: {
+    color: theme.colors.text,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  reviewDate: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+  },
+  saveWaypointButton: {
+    backgroundColor: theme.colors.accent,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    margin: 20,
+    marginTop: 0,
+    borderRadius: 12,
+  },
+  saveWaypointButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  infoSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  infoText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    marginLeft: 8,
+    flex: 1,
+  },
+});
+
 export default function AttractionsScreen() {
-  const [loading, setLoading] = useState(false);
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [error, setError] = useState<string | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(false);
   const [region, setRegion] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [distanceFilter, setDistanceFilter] = useState<number | null>(null);
@@ -308,7 +655,7 @@ export default function AttractionsScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name or category..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={theme.colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -416,7 +763,7 @@ export default function AttractionsScreen() {
                   style={styles.detailsButton}
                   onPress={() => openPlaceDetails(place)}
                 >
-                  <Ionicons name="information-circle" size={16} color="#38bdf8" />
+                  <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
                 </Pressable>
                 <Pressable
                   style={styles.waypointButton}
@@ -424,7 +771,7 @@ export default function AttractionsScreen() {
                   onMouseEnter={() => setHoveredTooltip(`${place.id}-waypoint`)}
                   onMouseLeave={() => setHoveredTooltip(null)}
                 >
-                  <Ionicons name="bookmark" size={16} color="#38bdf8" />
+                  <Ionicons name="bookmark" size={16} color={theme.colors.primary} />
                 </Pressable>
                 {Platform.OS === 'web' && hoveredTooltip === `${place.id}-waypoint` && (
                   <View style={styles.waypointTooltip}>
@@ -470,7 +817,7 @@ export default function AttractionsScreen() {
             {/* Header with close button */}
             <View style={styles.modalHeader}>
               <Pressable onPress={closePlaceDetails} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#e2e8f0" />
+                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
               </Pressable>
               <Text style={styles.modalTitle}>{selectedPlace.name}</Text>
             </View>
@@ -495,24 +842,24 @@ export default function AttractionsScreen() {
             <View style={styles.infoSection}>
               <Text style={styles.sectionTitle}>Details</Text>
               <View style={styles.infoRow}>
-                <Ionicons name="location" size={16} color="#38bdf8" />
+                <Ionicons name="location" size={16} color={theme.colors.primary} />
                 <Text style={styles.infoText}>
                   {formatDistance(selectedPlace.distanceMeters)} away
                 </Text>
               </View>
               <View style={styles.infoRow}>
-                <Ionicons name="pricetag" size={16} color="#38bdf8" />
+                <Ionicons name="pricetag" size={16} color={theme.colors.primary} />
                 <Text style={styles.infoText}>{selectedPlace.category}</Text>
               </View>
               {selectedPlace.address && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="home" size={16} color="#38bdf8" />
+                  <Ionicons name="home" size={16} color={theme.colors.primary} />
                   <Text style={styles.infoText}>{selectedPlace.address}</Text>
                 </View>
               )}
               {selectedPlace.description && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="information-circle" size={16} color="#38bdf8" />
+                  <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
                   <Text style={styles.infoText}>{selectedPlace.description}</Text>
                 </View>
               )}
@@ -524,19 +871,19 @@ export default function AttractionsScreen() {
                 <Text style={styles.sectionTitle}>Contact & Hours</Text>
                 {selectedPlace.phone && (
                   <View style={styles.infoRow}>
-                    <Ionicons name="call" size={16} color="#38bdf8" />
+                    <Ionicons name="call" size={16} color={theme.colors.primary} />
                     <Text style={styles.infoText}>{selectedPlace.phone}</Text>
                   </View>
                 )}
                 {selectedPlace.website && (
                   <View style={styles.infoRow}>
-                    <Ionicons name="globe" size={16} color="#38bdf8" />
+                    <Ionicons name="globe" size={16} color={theme.colors.primary} />
                     <Text style={styles.infoText}>{selectedPlace.website}</Text>
                   </View>
                 )}
                 {selectedPlace.openingHours && (
                   <View style={styles.infoRow}>
-                    <Ionicons name="time" size={16} color="#38bdf8" />
+                    <Ionicons name="time" size={16} color={theme.colors.primary} />
                     <Text style={styles.infoText}>{selectedPlace.openingHours}</Text>
                   </View>
                 )}
@@ -550,7 +897,7 @@ export default function AttractionsScreen() {
                   style={styles.actionButton}
                   onPress={() => callPlace(selectedPlace.phone!)}
                 >
-                  <Ionicons name="call" size={20} color="#fff" />
+                  <Ionicons name="call" size={20} color={theme.colors.surface} />
                   <Text style={styles.actionButtonText}>Call</Text>
                 </Pressable>
               )}
@@ -558,7 +905,7 @@ export default function AttractionsScreen() {
                 style={styles.actionButton}
                 onPress={() => navigateToPlace(selectedPlace)}
               >
-                <Ionicons name="navigate" size={20} color="#fff" />
+                <Ionicons name="navigate" size={20} color={theme.colors.surface} />
                 <Text style={styles.actionButtonText}>Navigate</Text>
               </Pressable>
               {selectedPlace.website && (
@@ -566,7 +913,7 @@ export default function AttractionsScreen() {
                   style={styles.actionButton}
                   onPress={() => openWebsite(selectedPlace.website!)}
                 >
-                  <Ionicons name="globe" size={20} color="#fff" />
+                  <Ionicons name="globe" size={20} color={theme.colors.surface} />
                   <Text style={styles.actionButtonText}>Website</Text>
                 </Pressable>
               )}
@@ -586,7 +933,7 @@ export default function AttractionsScreen() {
                             key={i}
                             name={i < review.rating ? "star" : "star-outline"}
                             size={14}
-                            color="#f59e0b"
+                            color={theme.colors.accent}
                           />
                         ))}
                       </View>
@@ -606,7 +953,7 @@ export default function AttractionsScreen() {
                 closePlaceDetails();
               }}
             >
-              <Ionicons name="bookmark" size={20} color="#fff" />
+              <Ionicons name="bookmark" size={20} color={theme.colors.surface} />
               <Text style={styles.saveWaypointButtonText}>Save as Waypoint</Text>
             </Pressable>
           </>
@@ -616,393 +963,3 @@ export default function AttractionsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    paddingBottom: 40,
-    backgroundColor: "#0f0a1a",
-  },
-  header: {
-    marginTop: 18,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    overflow: "hidden",
-    backgroundColor: "#0b4b66",
-  },
-  headerGlow: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(56,189,248,0.5)",
-    top: -80,
-    right: -40,
-  },
-  headerGlowSecondary: {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(34,211,238,0.4)",
-    bottom: -60,
-    left: -20,
-  },
-  headerBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(15,10,26,0.35)",
-    color: "#f8fafc",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 8,
-    letterSpacing: 0.4,
-  },
-  title: {
-    color: "#f8fafc",
-    fontSize: 30,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  subtitle: {
-    color: "#c4b5fd",
-    marginTop: 6,
-    fontSize: 15,
-  },
-  primaryButton: {
-    backgroundColor: "#f59e0b",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#f59e0b",
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  primaryButtonText: {
-    color: "#2b0a3d",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  loadingText: {
-    color: "#cbd5f5",
-  },
-  errorText: {
-    color: "#f87171",
-    marginBottom: 12,
-  },
-  bodyText: {
-    color: "#e2e8f0",
-    fontSize: 15,
-    marginBottom: 12,
-  },
-  metaText: {
-    color: "#94a3b8",
-    fontSize: 13,
-  },
-  placeRow: {
-    backgroundColor: "#1b1030",
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-    shadowColor: "#020617",
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  },
-  placeInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  placeActions: {
-    alignItems: "flex-end",
-  },
-  tagRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  offlineIndicator: {
-    backgroundColor: '#1e3a8a',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#3b82f6',
-  },
-  offlineText: {
-    color: '#dbeafe',
-    fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  mapContainer: {
-    marginTop: 20,
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-  },
-  map: {
-    width: "100%",
-    height: 300,
-  },
-  searchContainer: {
-    marginBottom: 16,
-  },
-  searchInput: {
-    backgroundColor: "#1b1030",
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: "#e2e8f0",
-    fontSize: 16,
-  },
-  filtersContainer: {
-    backgroundColor: "#1b1030",
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-  },
-  filterLabel: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  filterRow: {
-    marginBottom: 12,
-  },
-  filterTitle: {
-    color: "#c4b5fd",
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  filterButtons: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  filterButton: {
-    backgroundColor: "#2d1b4d",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#4c1d95",
-  },
-  filterButtonActive: {
-    backgroundColor: "#6d28d9",
-    borderColor: "#8b5cf6",
-  },
-  filterButtonText: {
-    color: "#94a3b8",
-    fontSize: 14,
-  },
-  filterButtonTextActive: {
-    color: "#f8fafc",
-    fontWeight: "600",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  waypointButton: {
-    backgroundColor: "#1e293b",
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  waypointTooltip: {
-    position: "absolute",
-    bottom: 40,
-    left: 0,
-    backgroundColor: "#1e293b",
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#334155",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  waypointTooltipText: {
-    color: "#f8fafc",
-    fontSize: 12,
-  },
-  waypointMobileText: {
-    position: "absolute",
-    bottom: -20,
-    left: 0,
-    color: "#94a3b8",
-    fontSize: 10,
-  },
-  detailsButton: {
-    backgroundColor: "#1e293b",
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#334155",
-    marginRight: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#0f0a1a",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-    paddingTop: 50,
-    backgroundColor: "#1e293b",
-    borderBottomWidth: 1,
-    borderBottomColor: "#334155",
-  },
-  closeButton: {
-    marginRight: 16,
-    padding: 8,
-  },
-  modalTitle: {
-    color: "#f8fafc",
-    fontSize: 20,
-    fontWeight: "600",
-    flex: 1,
-  },
-  photosContainer: {
-    height: 200,
-    marginVertical: 16,
-  },
-  photosList: {
-    paddingHorizontal: 20,
-  },
-  placePhoto: {
-    width: 280,
-    height: 180,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  infoSection: {
-    backgroundColor: "#1b1030",
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-  },
-  sectionTitle: {
-    color: "#f8fafc",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  infoText: {
-    color: "#e2e8f0",
-    fontSize: 15,
-    marginLeft: 8,
-    flex: 1,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    margin: 20,
-    marginTop: 0,
-  },
-  actionButton: {
-    backgroundColor: "#38bdf8",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    flex: 1,
-    marginHorizontal: 4,
-    justifyContent: "center",
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  reviewCard: {
-    backgroundColor: "#0f0a1a",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#2d1b4d",
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  reviewAuthor: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  ratingContainer: {
-    flexDirection: "row",
-  },
-  reviewText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  reviewDate: {
-    color: "#94a3b8",
-    fontSize: 12,
-  },
-  saveWaypointButton: {
-    backgroundColor: "#f59e0b",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    margin: 20,
-    marginTop: 0,
-    borderRadius: 12,
-  },
-  saveWaypointButtonText: {
-    color: "#2b0a3d",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-});
