@@ -92,15 +92,22 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: theme.colors.accent,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: "center",
+    marginBottom: 16,
+    shadowColor: theme.colors.accent,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   primaryButtonText: {
     color: theme.colors.background,
     fontSize: 16,
     fontWeight: "600",
+    textAlign: 'center',
   },
   secondaryButton: {
     backgroundColor: theme.colors.surface,
@@ -545,7 +552,7 @@ export default function TripsScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Saved Waypoints</Text>
         {waypoints.length === 0 ? (
-          <Text style={styles.bodyText}>No waypoints saved yet. Add your current location or save places from other tabs.</Text>
+            <Text style={{ color: '#ef4444', fontSize: 15, marginBottom: 8 }}>No waypoints saved yet. Add your current location or save places from other tabs.</Text>
         ) : (
           waypoints.map((waypoint) => (
             <View key={waypoint.id} style={styles.waypointItem}>

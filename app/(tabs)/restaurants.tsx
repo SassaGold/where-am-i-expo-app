@@ -76,8 +76,6 @@ const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleS
     marginBottom: 20,
     padding: 16,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     overflow: "hidden",
     backgroundColor: theme.colors.surface,
   },
@@ -124,12 +122,28 @@ const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleS
   },
   searchInput: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
     fontSize: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
     color: theme.colors.text,
+  },
+  primaryButton: {
+    backgroundColor: theme.colors.accent,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: theme.colors.accent,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  primaryButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: 'center',
   },
   filtersContainer: {
     marginBottom: 20,
@@ -715,7 +729,7 @@ export default function RestaurantsScreen() {
       )}
 
       {filteredPlaces.length === 0 && !loading ? (
-        <Text style={styles.bodyText}>
+        <Text style={{ color: '#ef4444', fontWeight: '600', textAlign: 'center', fontSize: 16 }}>
           {places.length === 0 ? "No restaurants found yet. Try updating your location." : "No restaurants match your filters."}
         </Text>
       ) : (

@@ -1,3 +1,88 @@
+// Maps weather code to human-readable description
+function formatWeatherCode(code?: number): string {
+  if (code === undefined) return "Unknown";
+  const mapping: Record<number, string> = {
+    0: "Clear",
+    1: "Mostly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Fog",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Drizzle",
+    55: "Heavy drizzle",
+    56: "Freezing drizzle",
+    57: "Heavy freezing drizzle",
+    61: "Light rain",
+    63: "Rain",
+    65: "Heavy rain",
+    66: "Freezing rain",
+    67: "Heavy freezing rain",
+    71: "Light snow",
+    73: "Snow",
+    75: "Heavy snow",
+    77: "Snow grains",
+    80: "Light rain showers",
+    81: "Rain showers",
+    82: "Heavy rain showers",
+    85: "Light snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm + hail",
+    99: "Thunderstorm + heavy hail",
+  };
+  return mapping[code] || "Unknown";
+}
+// Maps weather code to emoji for display
+function weatherEmoji(code?: number): string {
+  if (code === undefined) return "❓";
+  if ([0, 1].includes(code)) return "☀️"; // Clear, mostly clear
+  if (code === 2) return "🌤️"; // Partly cloudy
+  if (code === 3) return "☁️"; // Overcast
+  if ([45, 48].includes(code)) return "🌫️"; // Fog
+  if ([51, 53, 55, 56, 57].includes(code)) return "🌦️"; // Drizzle
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "🌧️"; // Rain
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "❄️"; // Snow
+  if ([95, 96, 99].includes(code)) return "⛈️"; // Thunderstorm
+  return "🌡️";
+}
+// Converts latitude and longitude to tile x/y for a given zoom level
+function latLonToTile(lat: number, lon: number, zoom: number) {
+  const latRad = (lat * Math.PI) / 180;
+  const n = Math.pow(2, zoom);
+  const x = Math.floor(((lon + 180) / 360) * n);
+  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+  return { x, y };
+}
+// Generate alert messages based on weather info (for Alerts card)
+function buildAlerts(weather?: WeatherInfo): string[] {
+  if (!weather) return [];
+  const alerts: string[] = [];
+  // Temperature alerts
+  if ((weather.temperatureC ?? 20) < 5) {
+    alerts.push("Very cold - risk of frostbite");
+  } else if ((weather.temperatureC ?? 20) > 30) {
+    alerts.push("Very hot - risk of heat exhaustion");
+  }
+  // Wind alerts
+  if ((weather.windSpeed ?? 0) > 15) {
+    alerts.push("Very windy - dangerous riding conditions");
+  }
+  // Precipitation alerts
+  if ((weather.precipitation ?? 0) > 5 || (weather.precipitationProbability ?? 0) > 80) {
+    alerts.push("Heavy rain - extremely dangerous");
+  }
+  // Weather code alerts (severe weather)
+  if ([95, 96, 99].includes(weather.weatherCode ?? 0)) {
+    alerts.push("Thunderstorm - extremely dangerous");
+  } else if ([71, 73, 75, 77].includes(weather.weatherCode ?? 0)) {
+    alerts.push("Snow/ice conditions");
+  } else if ([45, 48].includes(weather.weatherCode ?? 0)) {
+    alerts.push("Foggy conditions");
+  }
+  return alerts;
+}
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -45,14 +130,12 @@ type WeatherInfo = {
   precipitation?: number;
   precipitationProbability?: number;
   weatherCode?: number;
-  // Forecast data
   hourlyForecast?: {
     time: string[];
     temperature: number[];
     precipitation: number[];
     precipitationProbability: number[];
     weatherCode: number[];
-    windSpeed: number[];
   };
   dailyForecast?: {
     time: string[];
@@ -63,126 +146,6 @@ type WeatherInfo = {
     weatherCode: number[];
     windSpeedMax: number[];
   };
-};
-
-type RidingConditions = {
-  score: number; // 0-100
-  suitability: 'excellent' | 'good' | 'fair' | 'poor' | 'dangerous';
-  alerts: string[];
-  recommendations: string[];
-};
-
-type Place = {
-  id: string;
-  name: string;
-  category: string;
-  distanceMeters?: number;
-};
-
-const haversineMeters = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-) => {
-  const toRad = (value: number) => (value * Math.PI) / 180;
-  const R = 6371000;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-const formatDistance = (distance?: number) => {
-  if (distance === undefined) {
-    return "";
-  }
-  if (distance < 1000) {
-    return `${Math.round(distance)} m`;
-  }
-  return `${(distance / 1000).toFixed(1)} km`;
-};
-
-const formatWeatherCode = (code?: number) => {
-  if (code === undefined) {
-    return "";
-  }
-  const mapping: Record<number, string> = {
-    0: "Clear",
-    1: "Mostly clear",
-    2: "Partly cloudy",
-    3: "Overcast",
-    45: "Fog",
-    48: "Depositing rime fog",
-    51: "Light drizzle",
-    53: "Drizzle",
-    55: "Heavy drizzle",
-    61: "Light rain",
-    63: "Rain",
-    65: "Heavy rain",
-    71: "Light snow",
-    73: "Snow",
-    75: "Heavy snow",
-    80: "Rain showers",
-    81: "Heavy rain showers",
-    82: "Violent rain showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm w/ hail",
-    99: "Thunderstorm w/ heavy hail",
-  };
-  return mapping[code] ?? "Unknown";
-};
-
-const latLonToTile = (lat: number, lon: number, zoom: number) => {
-  const latRad = (lat * Math.PI) / 180;
-  const n = Math.pow(2, zoom);
-  const x = Math.floor(((lon + 180) / 360) * n);
-  const y = Math.floor(
-    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n
-  );
-  return { x, y };
-};
-
-
-const weatherEmoji = (code?: number) => {
-  if (code === undefined) {
-    return "❓";
-  }
-  if (code === 0) return "☀️";
-  if (code === 1 || code === 2) return "🌤️";
-  if (code === 3) return "☁️";
-  if (code === 45 || code === 48) return "🌫️";
-  if ([51, 53, 55].includes(code)) return "🌦️";
-  if ([61, 63, 65, 80, 81, 82].includes(code)) return "🌧️";
-  if ([71, 73, 75].includes(code)) return "❄️";
-  if ([95, 96, 99].includes(code)) return "⛈️";
-  return "🌡️";
-};
-
-const buildAlerts = (weather?: WeatherInfo) => {
-  if (!weather) {
-    return [] as string[];
-  }
-  const alerts: string[] = [];
-  if ((weather.precipitationProbability ?? 0) >= 60) {
-    alerts.push("Rain likely in the next hour.");
-  }
-  if ((weather.windSpeed ?? 0) >= 10) {
-    alerts.push("Windy conditions nearby.");
-  }
-  if ((weather.temperatureC ?? 0) <= 0) {
-    alerts.push("Freezing temperatures detected.");
-  }
-  if ((weather.temperatureC ?? 0) >= 32) {
-    alerts.push("High heat — stay hydrated.");
-  }
-  return alerts;
 };
 
 const calculateRidingConditions = (weather: WeatherInfo): RidingConditions => {
@@ -310,6 +273,194 @@ const getSuitabilityStyle = (suitability: RidingConditions['suitability'], theme
 };
 
 const getStyles = (theme: any): ReturnType<typeof StyleSheet.create> => StyleSheet.create({
+            weatherSectionDivider: {
+              height: 1,
+              backgroundColor: theme.colors.border,
+              marginVertical: 10,
+              opacity: 0.18,
+              borderRadius: 1,
+            },
+            weatherSummaryBlock: {
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 8,
+              gap: 10,
+            },
+            weatherSummaryTextBlock: {
+              flexDirection: 'column',
+              gap: 2,
+            },
+            weatherSummaryMain: {
+              fontSize: 18,
+              fontWeight: '700',
+              color: theme.isDark ? '#fff' : '#1a2636',
+              marginBottom: 1,
+            },
+            weatherSummarySub: {
+              fontSize: 14,
+              color: theme.colors.textSecondary,
+              fontWeight: '500',
+            },
+          ridingSuitabilityCard: {
+            marginTop: 10,
+            backgroundColor: theme.isDark ? '#1a2636' : '#e3f6ff',
+            borderRadius: 16,
+            padding: 12,
+            shadowColor: theme.colors.text,
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
+          },
+          ridingSuitabilityRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 6,
+            gap: 8,
+          },
+          ridingSuitabilityLabel: {
+            color: theme.isDark ? '#b3e0ff' : '#1a2636',
+            fontWeight: 'bold',
+            fontSize: 15,
+          },
+          ridingAlertsBeautiful: {
+            marginTop: 6,
+            marginBottom: 2,
+            padding: 8,
+            backgroundColor: theme.isDark ? '#2a2a3a' : '#fffbe6',
+            borderRadius: 10,
+          },
+          ridingRecommendationsBeautiful: {
+            marginTop: 4,
+            padding: 8,
+            backgroundColor: theme.isDark ? '#223366' : '#e6fff7',
+            borderRadius: 10,
+          },
+        forecastGrid: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'stretch',
+          gap: 12,
+          marginTop: 8,
+        },
+        forecastDay: {
+          flex: 1,
+          backgroundColor: theme.isDark ? '#223366' : '#e3f6ff',
+          borderRadius: 16,
+          alignItems: 'center',
+          paddingVertical: 12,
+          paddingHorizontal: 6,
+          marginHorizontal: 2,
+          shadowColor: theme.colors.text,
+          shadowOpacity: 0.08,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 2,
+        },
+        forecastDate: {
+          color: theme.isDark ? '#b3e0ff' : '#1a2636',
+          fontSize: 13,
+          fontWeight: '700',
+          marginBottom: 2,
+        },
+        forecastEmoji: {
+          fontSize: 32,
+          marginBottom: 2,
+          textShadowColor: 'rgba(0,0,0,0.10)',
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 2,
+        },
+        forecastTemp: {
+          color: theme.isDark ? '#fff' : '#223366',
+          fontSize: 18,
+          fontWeight: 'bold',
+          marginBottom: 2,
+        },
+        forecastPrecip: {
+          color: '#38b6ff',
+          fontSize: 13,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+      alertsTitle: {
+        color: theme.colors.warningText || '#FFD700', // bright yellow fallback
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 2,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      },
+      alertText: {
+        color: theme.colors.warningText || '#FFD700',
+        fontSize: 15,
+        marginBottom: 2,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      },
+      recommendationsTitle: {
+        color: theme.colors.infoText || '#FFFACD', // light yellow fallback
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 2,
+        textShadowColor: 'rgba(0,0,0,0.4)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      },
+      recommendationText: {
+        color: theme.colors.infoText || '#FFFACD',
+        fontSize: 15,
+        marginBottom: 2,
+        textShadowColor: 'rgba(0,0,0,0.4)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      },
+    quickAccessGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 16,
+      marginTop: 8,
+      marginBottom: 4,
+    },
+    quickAccessButton: {
+      width: '47%',
+      aspectRatio: 1.8,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      flexDirection: 'column',
+      shadowColor: theme.colors.text,
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    quickAccessText: {
+      color: '#ef4444',
+      fontSize: 16,
+      fontWeight: '700',
+      marginTop: 8,
+      textAlign: 'center',
+      textShadowColor: theme.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+    hotelIcon: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 32,
+      height: 24,
+      marginBottom: 2,
+    },
   container: {
     padding: 20,
     paddingBottom: 40,
@@ -379,9 +530,14 @@ const getStyles = (theme: any): ReturnType<typeof StyleSheet.create> => StyleShe
     elevation: 6,
   },
   primaryButtonText: {
-    color: theme.colors.background,
-    fontSize: 16,
-    fontWeight: "600",
+    color: theme.isDark ? '#fff' : '#1e293b',
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    textAlign: 'center',
+    textShadowColor: theme.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   secondaryButton: {
     marginTop: 12,
@@ -393,8 +549,14 @@ const getStyles = (theme: any): ReturnType<typeof StyleSheet.create> => StyleShe
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: theme.colors.text,
-    fontSize: 14,
+    color: theme.isDark ? '#fff' : '#1e293b',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+    textShadowColor: theme.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   loadingRow: {
     flexDirection: "row",
@@ -579,7 +741,7 @@ const getStyles = (theme: any): ReturnType<typeof StyleSheet.create> => StyleShe
 });
 
 export default function Index() {
-  const { theme, toggleTheme, themeType } = useTheme();
+  const { theme } = useTheme();
   const styles = getStyles(theme);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -853,22 +1015,7 @@ out center 60;`;
         <Text style={styles.headerBadge}>Live nearby</Text>
         <Text style={styles.title}>Where Am I?</Text>
         <Text style={styles.subtitle}>Your location and what’s around you.</Text>
-        <Pressable
-          style={[styles.themeToggle, { backgroundColor: theme.colors.primary }]}
-          onPress={() => {
-            console.log('Theme button pressed, current theme:', themeType);
-            toggleTheme();
-          }}
-        >
-          <Ionicons 
-            name={themeType === 'light' ? 'sunny' : themeType === 'dark' ? 'moon' : 'bicycle'} 
-            size={20} 
-            color={theme.colors.surface} 
-          />
-          <Text style={styles.themeToggleText}>
-            {themeType === 'light' ? 'Light' : themeType === 'dark' ? 'Dark' : 'Biker'}
-          </Text>
-        </Pressable>
+        {/* Theme toggle removed: always biker theme */}
       </View>
 
       <View style={styles.card}>
@@ -993,77 +1140,35 @@ out center 60;`;
         </Text>
       </Pressable>
 
-      {loading && (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" />
-          <Text style={styles.loadingText}>Fetching local data…</Text>
-        </View>
-      )}
-
-      {error && <Text style={styles.errorText}>{error}</Text>}
-
-      {location && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Your Location</Text>
-          <Text style={styles.bodyText}>
-            {address?.displayName ?? "Address not available"}
-          </Text>
-          <Text style={styles.metaText}>
-            Lat {location.coords.latitude.toFixed(5)} · Lon {location.coords.longitude.toFixed(5)}
-          </Text>
-          <Text style={styles.metaText}>
-            Accuracy {Math.round(location.coords.accuracy ?? 0)} m
-          </Text>
-          <Pressable style={styles.secondaryButton} onPress={openMaps}>
-            <Text style={styles.secondaryButtonText}>Open in Maps</Text>
-          </Pressable>
-        </View>
-      )}
-
       {weather && (
-        <View style={styles.card}>
+        <View style={styles.weatherCardBeautiful}>
           <Text style={styles.cardTitle}>Local Weather</Text>
-          <View style={styles.weatherRow}>
-            <Text style={styles.weatherEmoji}>{weatherEmoji(weather.weatherCode)}</Text>
-            <View>
-              <Text style={styles.bodyText}>
-                {formatWeatherCode(weather.weatherCode)} · {weather.temperatureC?.toFixed(1)}°C
-              </Text>
-              <Text style={styles.metaText}>
-                Wind {weather.windSpeed?.toFixed(1)} m/s · Precip {weather.precipitation ?? 0} mm
-              </Text>
+          <View style={styles.weatherSummaryBlock}>
+            <Text style={styles.weatherEmojiBeautiful}>{weatherEmoji(weather.weatherCode)}</Text>
+            <View style={styles.weatherSummaryTextBlock}>
+              <Text style={styles.weatherSummaryMain}>{formatWeatherCode(weather.weatherCode)} · <Text style={styles.weatherTempBeautiful}>{weather.temperatureC?.toFixed(1)}°C</Text></Text>
+              <Text style={styles.weatherSummarySub}>Wind {weather.windSpeed?.toFixed(1)} m/s · Precip {weather.precipitation ?? 0} mm</Text>
+              <Text style={styles.weatherSummarySub}>Rain chance {weather.precipitationProbability ?? 0}%</Text>
             </View>
           </View>
-          <Text style={styles.bodyText}>
-            Rain chance {weather.precipitationProbability ?? 0}%
-          </Text>
-
-          {/* Riding Conditions */}
+          <View style={styles.weatherSectionDivider} />
           {ridingConditions && (
-            <View style={styles.ridingConditions}>
-              <View style={styles.ridingScoreRow}>
-                <Text style={styles.ridingScoreLabel}>Riding Suitability:</Text>
-                <View style={styles.scoreContainer}>
-                  <Text style={[styles.ridingScore, getScoreColor(ridingConditions.score, theme)]}>
-                    {ridingConditions.score}/100
-                  </Text>
-                  <Text style={[styles.suitabilityBadge, getSuitabilityStyle(ridingConditions.suitability, theme)]}>
-                    {ridingConditions.suitability.toUpperCase()}
-                  </Text>
-                </View>
+            <View style={styles.ridingSuitabilityCard}>
+              <View style={styles.ridingSuitabilityRow}>
+                <Text style={styles.ridingSuitabilityLabel}>Riding Suitability:</Text>
+                <Text style={[styles.ridingScore, getScoreColor(ridingConditions.score, theme)]}>{ridingConditions.score}/100</Text>
+                <Text style={[styles.suitabilityBadge, getSuitabilityStyle(ridingConditions.suitability, theme)]}>{ridingConditions.suitability.toUpperCase()}</Text>
               </View>
-
               {ridingConditions.alerts.length > 0 && (
-                <View style={styles.ridingAlerts}>
+                <View style={styles.ridingAlertsBeautiful}>
                   <Text style={styles.alertsTitle}>⚠️ Riding Alerts:</Text>
                   {ridingConditions.alerts.map((alert, index) => (
                     <Text key={index} style={styles.alertText}>• {alert}</Text>
                   ))}
                 </View>
               )}
-
               {ridingConditions.recommendations.length > 0 && (
-                <View style={styles.ridingRecommendations}>
+                <View style={styles.ridingRecommendationsBeautiful}>
                   <Text style={styles.recommendationsTitle}>💡 Recommendations:</Text>
                   {ridingConditions.recommendations.map((rec, index) => (
                     <Text key={index} style={styles.recommendationText}>• {rec}</Text>
@@ -1087,7 +1192,9 @@ out center 60;`;
                       {weatherEmoji(weather.dailyForecast?.weatherCode[index])}
                     </Text>
                     <Text style={styles.forecastTemp}>
-                      {weather.dailyForecast?.temperatureMax[index]?.toFixed(0)}° / {weather.dailyForecast?.temperatureMin[index]?.toFixed(0)}°
+                      {weather.dailyForecast?.temperatureMax[index]?.toFixed(0)}°
+                      <Text style={{ color: '#38b6ff', fontWeight: 'normal' }}> / </Text>
+                      {weather.dailyForecast?.temperatureMin[index]?.toFixed(0)}°
                     </Text>
                     <Text style={styles.forecastPrecip}>
                       {weather.dailyForecast?.precipitationProbabilityMax[index]}% rain
@@ -1097,7 +1204,6 @@ out center 60;`;
               </View>
             </View>
           )}
-
           <Pressable
             style={styles.secondaryButton}
             onPress={() => Linking.openURL(weatherUrl).catch(() => null)}
@@ -1107,16 +1213,7 @@ out center 60;`;
         </View>
       )}
 
-      {alerts.length > 0 && (
-        <View style={[styles.card, styles.alertCard]}>
-          <Text style={styles.cardTitle}>Alerts</Text>
-          {alerts.map((alert) => (
-            <Text key={alert} style={styles.bodyText}>
-              • {alert}
-            </Text>
-          ))}
-        </View>
-      )}
+
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Quick Access</Text>

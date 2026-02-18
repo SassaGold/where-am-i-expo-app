@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'light' | 'dark' | 'biker';
+export type ThemeType = 'biker';
 
 export interface Theme {
   isDark: boolean;
@@ -105,16 +105,12 @@ const bikerTheme: Theme = {
 };
 
 const themes = {
-  light: lightTheme,
-  dark: darkTheme,
   biker: bikerTheme,
 };
 
 interface ThemeContextType {
   theme: Theme;
   themeType: ThemeType;
-  setThemeType: (type: ThemeType) => void;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -132,60 +128,13 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [themeType, setThemeType] = useState<ThemeType>('dark');
-  const [systemTheme, setSystemTheme] = useState<ColorSchemeName>(Appearance.getColorScheme());
-
-  useEffect(() => {
-    loadThemePreference();
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSystemTheme(colorScheme);
-    });
-    return () => subscription?.remove();
-  }, []);
-
-  const loadThemePreference = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('theme_preference');
-      if (saved && ['light', 'dark', 'biker'].includes(saved)) {
-        setThemeType(saved as ThemeType);
-      } else {
-        // Default to system theme
-        const system = Appearance.getColorScheme();
-        setThemeType(system === 'dark' ? 'dark' : 'light');
-      }
-    } catch (error) {
-      console.log('Error loading theme preference:', error);
-    }
-  };
-
-  const saveThemePreference = async (type: ThemeType) => {
-    try {
-      await AsyncStorage.setItem('theme_preference', type);
-    } catch (error) {
-      console.log('Error saving theme preference:', error);
-    }
-  };
-
-  const setThemeTypeWithSave = (type: ThemeType) => {
-    setThemeType(type);
-    saveThemePreference(type);
-  };
-
-  const toggleTheme = () => {
-    console.log('toggleTheme called, current theme:', themeType);
-    const nextTheme = themeType === 'dark' ? 'light' : themeType === 'light' ? 'biker' : 'dark';
-    console.log('next theme:', nextTheme);
-    setThemeTypeWithSave(nextTheme);
-  };
-
+  // Always use biker theme
+  const themeType: ThemeType = 'biker';
   const theme = themes[themeType];
-
   return (
     <ThemeContext.Provider value={{
       theme,
       themeType,
-      setThemeType: setThemeTypeWithSave,
-      toggleTheme,
     }}>
       {children}
     </ThemeContext.Provider>
