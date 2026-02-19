@@ -5,8 +5,8 @@ const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Helper function to detect if we're running on Netlify (production)
 const isProduction = (): boolean => {
-  if (Platform.OS !== 'web') return false;
-  return typeof window !== 'undefined' && window.location.hostname.includes('netlify');
+  // Force production mode for local mock testing
+  return true;
 };
 
 // Helper function to map categories to Google Places types
@@ -40,41 +40,64 @@ const getGoogleType = (category: string): string | undefined => {
 export const searchGooglePlaces = async (query: string, location: { lat: number; lng: number }, radius: number = 5000, type?: string): Promise<any[]> => {
   try {
     // Use Netlify functions for production, local proxy for development, direct API for mobile
-    let url;
-    if (isProduction()) {
-      url = `/.netlify/functions/places-search?` +
-        `query=${encodeURIComponent(query)}&` +
-        `location=${location.lat},${location.lng}&` +
-        `radius=${radius}`;
-      if (type) url += `&type=${type}`;
-    } else if (Platform.OS === 'web') {
-      // Use local proxy for development to avoid CORS
-      url = `http://localhost:3001/api/places/nearbysearch?` +
-        `location=${location.lat},${location.lng}&` +
-        `radius=${radius}&` +
-        `keyword=${encodeURIComponent(query)}`;
-      if (type) url += `&type=${type}`;
-    } else {
-      url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
-        `location=${location.lat},${location.lng}&` +
-        `radius=${radius}&` +
-        `keyword=${encodeURIComponent(query)}&` +
-        `key=${GOOGLE_PLACES_API_KEY}`;
-      if (type) url += `&type=${type}`;
-    }
-
-    console.log('Making API call to:', url.replace(GOOGLE_PLACES_API_KEY, '[API_KEY]'));
-
-    const response = await fetch(url);
-    const data = await response.json();
-    console.log('API response status:', data.status);
-
-    if (data.status !== 'OK') {
-      console.log('Google Places API error:', data.status, data.error_message);
-      return [];
-    }
-
-    return data.results || [];
+    // Always use Netlify function for mock data, force localhost:9999 for local dev
+      // Use mock data for all platforms
+      return [
+        {
+          place_id: 'mock1',
+          name: 'Mock Cafe',
+          geometry: { location: { lat: 59.9139, lng: 10.7522 } },
+          vicinity: '123 Mock St, Oslo',
+          address: '123 Mock St, Oslo',
+          description: 'A cozy spot for coffee and pastries in the heart of Oslo.',
+          photos: [
+            'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4'
+          ],
+          phone: '+47 22 33 44 55',
+          website: 'https://mockcafe.example.com',
+          openingHours: 'Mon-Fri 08:00-18:00',
+          rating: 4.5,
+          user_ratings_total: 120,
+          types: ['cafe', 'food', 'point_of_interest', 'establishment'],
+        },
+        {
+          place_id: 'mock2',
+          name: 'Fake Bistro',
+          geometry: { location: { lat: 59.9149, lng: 10.7532 } },
+          vicinity: '456 Fake Ave, Oslo',
+          address: '456 Fake Ave, Oslo',
+          description: 'Modern bistro serving international cuisine and local favorites.',
+          photos: [
+            'https://images.unsplash.com/photo-1520880867055-1e30d1cb001c',
+            'https://images.unsplash.com/photo-1414235077428-338989a2e8c0'
+          ],
+          phone: '+47 22 33 44 66',
+          website: 'https://fakebistro.example.com',
+          openingHours: 'Mon-Sun 11:00-23:00',
+          rating: 4.2,
+          user_ratings_total: 98,
+          types: ['restaurant', 'food', 'point_of_interest', 'establishment'],
+        },
+        {
+          place_id: 'mock3',
+          name: 'Sample Diner',
+          geometry: { location: { lat: 59.9159, lng: 10.7542 } },
+          vicinity: '789 Sample Blvd, Oslo',
+          address: '789 Sample Blvd, Oslo',
+          description: 'Classic diner with all-day breakfast and comfort food.',
+          photos: [
+            'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0',
+            'https://images.unsplash.com/photo-1504674900247-0877df9cc836'
+          ],
+          phone: '+47 22 33 44 77',
+          website: 'https://samplediner.example.com',
+          openingHours: 'Sat-Sun 09:00-15:00',
+          rating: 4.0,
+          user_ratings_total: 75,
+          types: ['diner', 'food', 'point_of_interest', 'establishment'],
+        },
+      ];
   } catch (error) {
     console.log('Error searching Google Places:', error);
     return [];
@@ -87,27 +110,71 @@ export const searchPlacesByType = async (type: string, location: { lat: number; 
     const googleType = getGoogleType(type);
     let url;
 
-    if (isProduction()) {
-      url = `/.netlify/functions/places-search?` +
-        `query=${encodeURIComponent(type)}&` +
-        `location=${location.lat},${location.lng}&` +
-        `radius=${radius}&` +
-        `type=${googleType || type}`;
-    } else if (Platform.OS === 'web') {
-      // Use local proxy for development to avoid CORS
-      url = `http://localhost:3001/api/places/nearbysearch?` +
-        `location=${location.lat},${location.lng}&` +
-        `radius=${radius}&` +
-        `keyword=${encodeURIComponent(type)}`;
-      if (googleType) url += `&type=${googleType}`;
-    } else {
-      url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
-        `location=${location.lat},${location.lng}&` +
-        `radius=${radius}&` +
-        `keyword=${encodeURIComponent(type)}&` +
-        `key=${GOOGLE_PLACES_API_KEY}`;
-      if (googleType) url += `&type=${googleType}`;
+    // Use mock data directly in Expo Go (native)
+    if (Platform.OS !== 'web') {
+      return [
+        {
+          place_id: 'mock1',
+          name: 'Mock Cafe',
+          geometry: { location: { lat: 59.9139, lng: 10.7522 } },
+          vicinity: '123 Mock St, Oslo',
+          address: '123 Mock St, Oslo',
+          description: 'A cozy spot for coffee and pastries in the heart of Oslo.',
+          photos: [
+            'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4'
+          ],
+          phone: '+47 22 33 44 55',
+          website: 'https://mockcafe.example.com',
+          openingHours: 'Mon-Fri 08:00-18:00',
+          rating: 4.5,
+          user_ratings_total: 120,
+          types: ['cafe', 'food', 'point_of_interest', 'establishment'],
+        },
+        {
+          place_id: 'mock2',
+          name: 'Fake Bistro',
+          geometry: { location: { lat: 59.9149, lng: 10.7532 } },
+          vicinity: '456 Fake Ave, Oslo',
+          address: '456 Fake Ave, Oslo',
+          description: 'Modern bistro serving international cuisine and local favorites.',
+          photos: [
+            'https://images.unsplash.com/photo-1520880867055-1e30d1cb001c',
+            'https://images.unsplash.com/photo-1414235077428-338989a2e8c0'
+          ],
+          phone: '+47 22 33 44 66',
+          website: 'https://fakebistro.example.com',
+          openingHours: 'Mon-Sun 11:00-23:00',
+          rating: 4.2,
+          user_ratings_total: 98,
+          types: ['restaurant', 'food', 'point_of_interest', 'establishment'],
+        },
+        {
+          place_id: 'mock3',
+          name: 'Sample Diner',
+          geometry: { location: { lat: 59.9159, lng: 10.7542 } },
+          vicinity: '789 Sample Blvd, Oslo',
+          address: '789 Sample Blvd, Oslo',
+          description: 'Classic diner with all-day breakfast and comfort food.',
+          photos: [
+            'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0',
+            'https://images.unsplash.com/photo-1504674900247-0877df9cc836'
+          ],
+          phone: '+47 22 33 44 77',
+          website: 'https://samplediner.example.com',
+          openingHours: 'Sat-Sun 09:00-15:00',
+          rating: 4.0,
+          user_ratings_total: 75,
+          types: ['diner', 'food', 'point_of_interest', 'establishment'],
+        },
+      ];
     }
+    // Always use Netlify function for mock data, force localhost:9999 for local dev
+    url = `http://localhost:9999/.netlify/functions/places-search?` +
+      `query=${encodeURIComponent(type)}&` +
+      `location=${location.lat},${location.lng}&` +
+      `radius=${radius}&` +
+      `type=${googleType || type}`;
 
     console.log('Searching places by type:', type, 'Google type:', googleType);
 
