@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'light' | 'dark' | 'biker';
+export type ThemeType = 'biker';
 
 export interface Theme {
   isDark: boolean;
@@ -32,50 +32,50 @@ export interface Theme {
 const lightTheme: Theme = {
   isDark: false,
   colors: {
-    background: '#ffffff',
-    surface: '#f8fafc',
-    primary: '#3b82f6',
-    secondary: '#64748b',
-    accent: '#f59e0b',
-    text: '#1e293b',
-    textSecondary: '#64748b',
-    border: '#e2e8f0',
+    background: '#f5f6fa',
+    surface: '#fff',
+    primary: '#4338ca',
+    secondary: '#a5b4fc',
+    accent: '#ffd700',
+    text: '#232946',
+    textSecondary: '#6b7280',
+    border: '#e0e7ef',
     error: '#ef4444',
     success: '#10b981',
-    warning: '#f59e0b',
+    warning: '#fbbf24',
     // Additional colors for visual appeal
-    headerBg: '#f0f9ff',
-    headerGlow: 'rgba(59,130,246,0.3)',
-    headerGlowSecondary: 'rgba(139,92,246,0.2)',
-    cardBg: '#ffffff',
-    cardBorder: '#e2e8f0',
-    glowPrimary: 'rgba(59,130,246,0.4)',
-    glowAccent: 'rgba(245,158,11,0.3)',
+    headerBg: '#ede9fe',
+    headerGlow: 'rgba(67,56,202,0.10)',
+    headerGlowSecondary: 'rgba(255,215,0,0.10)',
+    cardBg: '#fff',
+    cardBorder: '#e0e7ef',
+    glowPrimary: 'rgba(67,56,202,0.10)',
+    glowAccent: 'rgba(255,215,0,0.10)',
   },
 };
 
 const darkTheme: Theme = {
   isDark: true,
   colors: {
-    background: '#0f0a1a',
-    surface: '#1b1030',
-    primary: '#38bdf8',
-    secondary: '#64748b',
-    accent: '#f59e0b',
-    text: '#f8fafc',
-    textSecondary: '#94a3b8',
-    border: '#2d1b4d',
+    background: '#181a2a',
+    surface: '#232946',
+    primary: '#a5b4fc',
+    secondary: '#4338ca',
+    accent: '#ffd700',
+    text: '#f5f6fa',
+    textSecondary: '#a1a1aa',
+    border: '#232946',
     error: '#f87171',
     success: '#22c55e',
-    warning: '#f59e0b',
+    warning: '#fbbf24',
     // Additional colors for visual appeal
-    headerBg: '#3b0764',
-    headerGlow: 'rgba(236,72,153,0.55)',
-    headerGlowSecondary: 'rgba(59,130,246,0.45)',
-    cardBg: '#1b1030',
-    cardBorder: '#2d1b4d',
-    glowPrimary: 'rgba(56,189,248,0.4)',
-    glowAccent: 'rgba(245,158,11,0.3)',
+    headerBg: '#232946',
+    headerGlow: 'rgba(165,180,252,0.10)',
+    headerGlowSecondary: 'rgba(255,215,0,0.10)',
+    cardBg: '#232946',
+    cardBorder: '#232946',
+    glowPrimary: 'rgba(165,180,252,0.10)',
+    glowAccent: 'rgba(255,215,0,0.10)',
   },
 };
 
@@ -105,16 +105,12 @@ const bikerTheme: Theme = {
 };
 
 const themes = {
-  light: lightTheme,
-  dark: darkTheme,
   biker: bikerTheme,
 };
 
 interface ThemeContextType {
   theme: Theme;
   themeType: ThemeType;
-  setThemeType: (type: ThemeType) => void;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -132,60 +128,13 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [themeType, setThemeType] = useState<ThemeType>('dark');
-  const [systemTheme, setSystemTheme] = useState<ColorSchemeName>(Appearance.getColorScheme());
-
-  useEffect(() => {
-    loadThemePreference();
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSystemTheme(colorScheme);
-    });
-    return () => subscription?.remove();
-  }, []);
-
-  const loadThemePreference = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('theme_preference');
-      if (saved && ['light', 'dark', 'biker'].includes(saved)) {
-        setThemeType(saved as ThemeType);
-      } else {
-        // Default to system theme
-        const system = Appearance.getColorScheme();
-        setThemeType(system === 'dark' ? 'dark' : 'light');
-      }
-    } catch (error) {
-      console.log('Error loading theme preference:', error);
-    }
-  };
-
-  const saveThemePreference = async (type: ThemeType) => {
-    try {
-      await AsyncStorage.setItem('theme_preference', type);
-    } catch (error) {
-      console.log('Error saving theme preference:', error);
-    }
-  };
-
-  const setThemeTypeWithSave = (type: ThemeType) => {
-    setThemeType(type);
-    saveThemePreference(type);
-  };
-
-  const toggleTheme = () => {
-    console.log('toggleTheme called, current theme:', themeType);
-    const nextTheme = themeType === 'dark' ? 'light' : themeType === 'light' ? 'biker' : 'dark';
-    console.log('next theme:', nextTheme);
-    setThemeTypeWithSave(nextTheme);
-  };
-
+  // Always use biker theme
+  const themeType: ThemeType = 'biker';
   const theme = themes[themeType];
-
   return (
     <ThemeContext.Provider value={{
       theme,
       themeType,
-      setThemeType: setThemeTypeWithSave,
-      toggleTheme,
     }}>
       {children}
     </ThemeContext.Provider>

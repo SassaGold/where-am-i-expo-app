@@ -76,8 +76,6 @@ const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleS
     marginBottom: 20,
     padding: 16,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     overflow: "hidden",
     backgroundColor: theme.colors.surface,
   },
@@ -124,12 +122,27 @@ const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleS
   },
   searchInput: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
     fontSize: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
     color: theme.colors.text,
+  },
+  primaryButton: {
+    backgroundColor: theme.colors.accent,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: theme.colors.accent,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  primaryButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
+    fontWeight: "600",
   },
   filtersContainer: {
     marginBottom: 20,
@@ -279,56 +292,74 @@ const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleS
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
   },
   modalContent: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 20,
-    padding: 20,
-    margin: 20,
-    maxHeight: "80%",
-    width: "90%",
+    backgroundColor: theme.colors.cardBg,
+    borderRadius: 24,
+    padding: 18,
+    maxHeight: 420,
+    width: 340,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 36,
+    elevation: 24,
+    borderWidth: 2,
+    borderColor: theme.colors.cardBorder,
+    marginTop: 8,
+    marginBottom: 8,
   },
   modalTitle: {
-    color: theme.colors.text,
-    fontSize: 24,
-    fontWeight: "700",
+    color: theme.colors.primary,
+    fontSize: 26,
+    fontWeight: '700',
     marginBottom: 16,
-    textAlign: "center",
+    textAlign: 'center',
+    letterSpacing: 0.2,
+    fontFamily: 'System',
   },
   placeImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 16,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    alignSelf: 'center',
+    marginBottom: 18,
+    borderWidth: 3,
+    borderColor: theme.colors.accent,
   },
   placeDescription: {
     color: theme.colors.text,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 16,
+    fontSize: 17,
+    lineHeight: 25,
+    marginBottom: 18,
+    textAlign: 'center',
   },
   placeDetails: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   detailLabel: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "500",
+    color: theme.colors.secondary,
+    fontSize: 15,
+    fontWeight: '600',
+    marginRight: 8,
   },
   detailValue: {
     color: theme.colors.text,
-    fontSize: 14,
+    fontSize: 15,
   },
   closeButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -337,8 +368,9 @@ const getStyles = (theme: Theme): ReturnType<typeof StyleSheet.create> => StyleS
   },
   closeButtonText: {
     color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   reviewCard: {
     backgroundColor: theme.colors.surface,
@@ -451,14 +483,6 @@ export default function AttractionsScreen() {
       console.log('Failed to load cache:', err);
     }
     return [];
-  }, []);
-
-  const loadPlaces = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setIsOffline(false);
-
-    try {
       let position: any = null;
 
       if (Platform.OS === 'web') {
@@ -650,7 +674,6 @@ export default function AttractionsScreen() {
         <Text style={styles.title}>Tourist Attractions</Text>
         <Text style={styles.subtitle}>Discover interesting places and sights nearby.</Text>
       </View>
-
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -660,7 +683,6 @@ export default function AttractionsScreen() {
           onChangeText={setSearchQuery}
         />
       </View>
-
       <View style={styles.filtersContainer}>
         <Text style={styles.filterLabel}>Filters:</Text>
         <View style={styles.filterRow}>
@@ -713,22 +735,18 @@ export default function AttractionsScreen() {
           </View>
         </View>
       </View>
-
       <Pressable style={styles.primaryButton} onPress={loadPlaces}>
         <Text style={styles.primaryButtonText}>
           {loading ? "Loading..." : "Find attractions near me"}
         </Text>
       </Pressable>
-
       {loading && (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" />
           <Text style={styles.loadingText}>Searching nearby attractions…</Text>
         </View>
       )}
-
       {error && <Text style={styles.errorText}>{error}</Text>}
-
       {isOffline && cacheTimestamp && (
         <View style={styles.offlineIndicator}>
           <Text style={styles.offlineText}>
@@ -738,50 +756,28 @@ export default function AttractionsScreen() {
       )}
 
       {filteredPlaces.length === 0 && !loading ? (
-        <Text style={styles.bodyText}>
+        <Text style={{ color: '#ef4444', fontWeight: '600', textAlign: 'center', fontSize: 16 }}>
           {places.length === 0 ? "No attractions found yet. Try updating your location." : "No attractions match your filters."}
         </Text>
       ) : (
         filteredPlaces.map((place) => (
-          <View key={place.id} style={styles.placeRow}>
-            <Pressable
-              style={styles.placeInfo}
-              onPress={() => openPlaceDetails(place)}
-            >
-              <Text style={styles.bodyText}>{place.name}</Text>
-              <View style={styles.tagRow}>
-                <Text style={styles.metaText}>{place.category}</Text>
-                {place.phone && <Text style={styles.metaText}>📞 {place.phone}</Text>}
+          <View key={place.id} style={styles.placeCard}>
+            <View style={styles.placeHeader}>
+              <Ionicons name="star" size={28} color={theme.colors.primary} style={{ marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.placeName}>{place.name}</Text>
+                <Text style={styles.placeCategory}>{place.category}</Text>
+                {place.phone && <Text style={styles.placeCategory}>📞 {place.phone}</Text>}
               </View>
-            </Pressable>
+              <Text style={styles.ratingText}>{formatDistance(place.distanceMeters)}</Text>
+            </View>
             <View style={styles.placeActions}>
-              <Text style={styles.metaText}>
-                {formatDistance(place.distanceMeters)}
-              </Text>
-              <View style={styles.buttonRow}>
-                <Pressable
-                  style={styles.detailsButton}
-                  onPress={() => openPlaceDetails(place)}
-                >
-                  <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
-                </Pressable>
-                <Pressable
-                  style={styles.waypointButton}
-                  onPress={() => savePlaceAsWaypoint(place)}
-                  onMouseEnter={() => setHoveredTooltip(`${place.id}-waypoint`)}
-                  onMouseLeave={() => setHoveredTooltip(null)}
-                >
-                  <Ionicons name="bookmark" size={16} color={theme.colors.primary} />
-                </Pressable>
-                {Platform.OS === 'web' && hoveredTooltip === `${place.id}-waypoint` && (
-                  <View style={styles.waypointTooltip}>
-                    <Text style={styles.waypointTooltipText}>Save as waypoint</Text>
-                  </View>
-                )}
-                {Platform.OS !== 'web' && (
-                  <Text style={styles.waypointMobileText}>Save as waypoint</Text>
-                )}
-              </View>
+              <Pressable onPress={() => openPlaceDetails(place)}>
+                <Ionicons name="information-circle" size={22} color={theme.colors.primary} />
+              </Pressable>
+              <Pressable onPress={() => savePlaceAsWaypoint(place)}>
+                <Ionicons name="bookmark" size={22} color={theme.colors.primary} />
+              </Pressable>
             </View>
           </View>
         ))
@@ -811,55 +807,41 @@ export default function AttractionsScreen() {
       presentationStyle="pageSheet"
       onRequestClose={closePlaceDetails}
     >
-      <ScrollView style={styles.modalContainer}>
+      <ScrollView contentContainerStyle={styles.modalContainer}>
         {selectedPlace && (
-          <>
+          <View style={styles.modalContent}>
+            {/* Accent Bar */}
+            <View style={{ height: 6, backgroundColor: theme.colors.accent, borderTopLeftRadius: 20, borderTopRightRadius: 20, marginHorizontal: -20, marginTop: -20, marginBottom: 16 }} />
             {/* Header with close button */}
-            <View style={styles.modalHeader}>
-              <Pressable onPress={closePlaceDetails} style={styles.closeButton}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Pressable onPress={closePlaceDetails} style={[styles.closeButton, { marginRight: 12 }]}> 
                 <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
               </Pressable>
-              <Text style={styles.modalTitle}>{selectedPlace.name}</Text>
+              <Text style={[styles.modalTitle, { flex: 1 }]}>{selectedPlace.name}</Text>
             </View>
-
-            {/* Photos */}
+            {/* Photo */}
             {selectedPlace.photos && selectedPlace.photos.length > 0 && (
-              <View style={styles.photosContainer}>
-                <FlatList
-                  horizontal
-                  data={selectedPlace.photos}
-                  keyExtractor={(item, index) => `${selectedPlace.id}-photo-${index}`}
-                  renderItem={({ item }) => (
-                    <Image source={{ uri: item }} style={styles.placePhoto} />
-                  )}
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.photosList}
-                />
-              </View>
+              <Image source={{ uri: selectedPlace.photos[0] }} style={[styles.placePhoto, { borderRadius: 16, marginBottom: 18 }]} />
             )}
-
             {/* Basic Info */}
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Details</Text>
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={16} color={theme.colors.primary} />
-                <Text style={styles.infoText}>
-                  {formatDistance(selectedPlace.distanceMeters)} away
-                </Text>
+            <View style={{ marginBottom: 18 }}>
+              <View className={styles.infoRow}>
+                <Ionicons name="location" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                <Text style={styles.infoText}>{formatDistance(selectedPlace.distanceMeters)} away</Text>
               </View>
               <View style={styles.infoRow}>
-                <Ionicons name="pricetag" size={16} color={theme.colors.primary} />
+                <Ionicons name="pricetag" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
                 <Text style={styles.infoText}>{selectedPlace.category}</Text>
               </View>
               {selectedPlace.address && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="home" size={16} color={theme.colors.primary} />
+                  <Ionicons name="home" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
                   <Text style={styles.infoText}>{selectedPlace.address}</Text>
                 </View>
               )}
               {selectedPlace.description && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="information-circle" size={16} color={theme.colors.primary} />
+                  <Ionicons name="information-circle" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
                   <Text style={styles.infoText}>{selectedPlace.description}</Text>
                 </View>
               )}
@@ -956,10 +938,11 @@ export default function AttractionsScreen() {
               <Ionicons name="bookmark" size={20} color={theme.colors.surface} />
               <Text style={styles.saveWaypointButtonText}>Save as Waypoint</Text>
             </Pressable>
-          </>
+          </View>
         )}
       </ScrollView>
     </Modal>
-    </View>
+  </View>
+  </>
   );
 }

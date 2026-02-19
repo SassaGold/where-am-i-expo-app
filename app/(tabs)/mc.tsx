@@ -309,7 +309,27 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.cardBg,
+    borderRadius: 24,
+    padding: 18,
+    maxHeight: 420,
+    width: 340,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 36,
+    elevation: 24,
+    borderWidth: 2,
+    borderColor: theme.colors.cardBorder,
+    marginTop: 8,
+    marginBottom: 8,
   },
   modalHeader: {
     flexDirection: "row",
@@ -321,13 +341,21 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   closeButton: {
-    marginRight: 16,
+    backgroundColor: theme.colors.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
   },
   modalTitle: {
-    color: theme.colors.text,
-    fontSize: 20,
-    fontWeight: "600",
-    flex: 1,
+    color: theme.colors.primary,
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+    fontFamily: 'System',
   },
   photosContainer: {
     padding: 20,
@@ -336,12 +364,19 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     gap: 12,
   },
   placePhoto: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    alignSelf: 'center',
+    marginBottom: 18,
+    borderWidth: 3,
+    borderColor: theme.colors.accent,
   },
   infoSection: {
-    padding: 20,
+    paddingTop: 0,
+    paddingRight: 20,
+    paddingBottom: 20,
+    paddingLeft: 20,
   },
   sectionTitle: {
     color: theme.colors.text,
@@ -1115,67 +1150,53 @@ export default function McScreen() {
       presentationStyle="pageSheet"
       onRequestClose={closePlaceDetails}
     >
-      <ScrollView style={styles.modalContainer}>
+      <ScrollView contentContainerStyle={styles.modalContainer}>
         {selectedPlace && (
-          <>
+          <View style={styles.modalContent}>
+            {/* Accent Bar */}
+            <View style={{ height: 6, backgroundColor: theme.colors.accent, borderTopLeftRadius: 20, borderTopRightRadius: 20, marginHorizontal: -20, marginTop: -20, marginBottom: 16 }} />
             {/* Header with close button */}
-            <View style={styles.modalHeader}>
-              <Pressable onPress={closePlaceDetails} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#e2e8f0" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Pressable onPress={closePlaceDetails} style={[styles.closeButton, { marginRight: 12 }]}> 
+                <Ionicons name="close" size={24} color={theme.colors.textSecondary || '#e2e8f0'} />
               </Pressable>
-              <Text style={styles.modalTitle}>{selectedPlace.name}</Text>
+              <Text style={[styles.modalTitle, { flex: 1 }]}>{selectedPlace.name}</Text>
             </View>
-
-            {/* Photos */}
+            {/* Photo */}
             {selectedPlace.photos && selectedPlace.photos.length > 0 && (
-              <View style={styles.photosContainer}>
-                <FlatList
-                  horizontal
-                  data={selectedPlace.photos}
-                  keyExtractor={(item, index) => `${selectedPlace.id}-photo-${index}`}
-                  renderItem={({ item }) => (
-                    <Image source={{ uri: item }} style={styles.placePhoto} />
-                  )}
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.photosList}
-                />
-              </View>
+              <Image source={{ uri: selectedPlace.photos[0] }} style={[styles.placePhoto, { borderRadius: 16, marginBottom: 18 }]} />
             )}
-
             {/* Basic Info */}
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Details</Text>
+            <View style={{ marginBottom: 18 }}>
               <View style={styles.infoRow}>
-                <Ionicons name="location" size={16} color="#38bdf8" />
-                <Text style={styles.infoText}>
-                  {formatDistance(selectedPlace.distanceMeters)} away
-                </Text>
+                <Ionicons name="location" size={18} color={theme.colors.primary || '#38bdf8'} style={{ marginRight: 8 }} />
+                <Text style={styles.infoText}>{formatDistance(selectedPlace.distanceMeters)} away</Text>
               </View>
               <View style={styles.infoRow}>
-                <Ionicons name="pricetag" size={16} color="#38bdf8" />
+                <Ionicons name="pricetag" size={18} color={theme.colors.primary || '#38bdf8'} style={{ marginRight: 8 }} />
                 <Text style={styles.infoText}>{selectedPlace.category}</Text>
               </View>
               {selectedPlace.fee !== undefined && (
                 <View style={styles.infoRow}>
-                  <Ionicons name={selectedPlace.fee ? "cash" : "cash-outline"} size={16} color="#f59e0b" />
+                  <Ionicons name={selectedPlace.fee ? 'cash' : 'cash-outline'} size={18} color={theme.colors.accent || '#f59e0b'} style={{ marginRight: 8 }} />
                   <Text style={styles.infoText}>{selectedPlace.fee ? 'Free parking' : 'Paid parking'}</Text>
                 </View>
               )}
               {selectedPlace.note && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="information-circle" size={16} color="#38bdf8" />
+                  <Ionicons name="information-circle" size={18} color={theme.colors.primary || '#38bdf8'} style={{ marginRight: 8 }} />
                   <Text style={styles.infoText}>{selectedPlace.note}</Text>
                 </View>
               )}
               {selectedPlace.address && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="home" size={16} color="#38bdf8" />
+                  <Ionicons name="home" size={18} color={theme.colors.primary || '#38bdf8'} style={{ marginRight: 8 }} />
                   <Text style={styles.infoText}>{selectedPlace.address}</Text>
                 </View>
               )}
               {selectedPlace.description && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="document-text" size={16} color="#38bdf8" />
+                  <Ionicons name="document-text" size={18} color={theme.colors.primary || '#38bdf8'} style={{ marginRight: 8 }} />
                   <Text style={styles.infoText}>{selectedPlace.description}</Text>
                 </View>
               )}
@@ -1272,10 +1293,14 @@ export default function McScreen() {
               <Ionicons name="bookmark" size={20} color="#fff" />
               <Text style={styles.saveWaypointButtonText}>Save as Waypoint</Text>
             </Pressable>
-          </>
+          </View>
         )}
       </ScrollView>
-    </Modal>
-    </View>
-  );
-}
+      <Modal
+        visible={modalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={closePlaceDetails}
+      >
+        <Pressable style={styles.modalContainer} onPress={closePlaceDetails}>
+          <Pressable style={styles.modalContent}>
